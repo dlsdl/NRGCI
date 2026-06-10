@@ -1,5 +1,5 @@
 import pako from 'pako'
-import { gameState, getSaveState, loadSaveState, addNotification, D0, DEC } from './engine.js'
+import { gameState, getSaveState, loadSaveState, addNotification } from './engine.js'
 
 // 序列化游戏状态为字符串
 export function serializeState(state) {

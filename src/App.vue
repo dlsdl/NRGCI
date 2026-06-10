@@ -1,108 +1,149 @@
 <template>
-  <div class="app">
-    <header class="header">
-      <h1>🌾 不真实割草增量</h1>
-      <span class="subtitle">NRGCI - Not Real Grass Cutting Incremental</span>
-      <div class="save-buttons">
-        <button @click="saveGame" class="btn btn-save">💾 保存</button>
-        <button @click="loadGame" class="btn btn-load">📂 加载</button>
-        <button @click="exportClipboard" class="btn btn-export">📋 导出剪贴板</button>
-        <button @click="importClipboard" class="btn btn-import">📥 导入剪贴板</button>
-        <button @click="exportFile" class="btn btn-export-file">📄 导出文件</button>
-        <button @click="importFile" class="btn btn-import-file">📁 导入文件</button>
-        <button @click="doHardReset" class="btn btn-danger">⚠️ 硬重置</button>
-      </div>
-    </header>
-
-    <div class="tab-bar">
-      <button
-        v-for="(tab, i) in tabs"
-        :key="i"
-        :class="['tab', { active: activeTab === i, locked: !tab.unlocked }]"
-        @click="activeTab = i"
-        :disabled="!tab.unlocked"
-      >
-        {{ tab.label }}
-      </button>
+  <div class="app-container">
+    <!-- 固定按钮 -->
+    <div class="fixed-buttons">
+      <div class="canvas-info">{{ canvasInfoText }}</div>
+      <button class="fixed-btn" @click="showTeleport = true">🗺️ 传送</button>
+      <button class="fixed-btn" @click="showSaveWindow = true">💾 存档</button>
     </div>
 
-    <!-- 基础区域 A1-A4 -->
-    <div v-if="activeTab < 4" class="area-panel">
-      <AreaPanel :areaIndex="activeTab" />
-    </div>
-
-    <!-- 高级区域 B1-B4 -->
-    <div v-else class="area-panel">
-      <AdvancedPanel :areaIndex="activeTab - 4" />
-    </div>
-
-    <!-- 通知区域 -->
-    <div class="notifications" v-if="gameState.notifications.length > 0">
+    <!-- 可拖动画布 -->
+    <div
+      class="canvas-viewport"
+      @mousedown="startDrag"
+      @mousemove="onDrag"
+      @mouseup="endDrag"
+      @mouseleave="endDrag"
+      @wheel.prevent="onZoom"
+    >
       <div
-        v-for="n in gameState.notifications.slice(0, 5)"
-        :key="n.id"
-        class="notification"
+        ref="canvasEl"
+        class="canvas-content"
+        :style="canvasStyle"
       >
-        {{ n.msg }}
+        <!-- 基础区域 A1-A4 -->
+        <div
+          v-for="ai in 4"
+          :key="'a'+ai"
+          v-show="gameState.areas[ai-1].unlocked"
+          class="area-block"
+          :style="areaStyle(ai-1, false)"
+        >
+          <div class="area-title">{{ areaTitle(ai-1) }}</div>
+          <AreaGrid :areaIndex="ai-1" />
+        </div>
+
+        <!-- 高级区域 B1-B4 -->
+        <div
+          v-for="bi in 4"
+          :key="'b'+bi"
+          v-show="gameState.advancedAreas[bi-1].unlocked"
+          class="area-block adv-area"
+          :style="areaStyle(bi-1, true)"
+        >
+          <div class="area-title adv-title">{{ advTitle(bi-1) }}</div>
+          <AdvancedGrid :areaIndex="bi-1" />
+        </div>
       </div>
     </div>
+
+    <!-- 传送弹窗 -->
+    <TeleportModal v-if="showTeleport" @close="showTeleport = false" />
+
+    <!-- 存档弹窗 -->
+    <SaveWindow v-if="showSaveWindow" @close="showSaveWindow = false" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { gameState, gameTick, hardReset, addNotification, D0, DEC } from './game/engine.js'
-import {
-  saveToLocal, loadFromLocal, hasSave,
-  exportToClipboard, importFromClipboard,
-  exportToFile, importFromFile,
-  startAutoSave, stopAutoSave,
-} from './game/save.js'
-import AreaPanel from './components/AreaPanel.vue'
-import AdvancedPanel from './components/AdvancedPanel.vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { gameState, gameTick, viewTick, showTeleport, showSaveWindow, AREA_FULL_NAMES, ADVANCED_AREAS, getAreaPos, getAdvancedAreaPos, CELL } from './game/engine.js'
+import { loadFromLocal, hasSave, startAutoSave, stopAutoSave } from './game/save.js'
+import AreaGrid from './components/AreaGrid.vue'
+import AdvancedGrid from './components/AdvancedGrid.vue'
+import TeleportModal from './components/TeleportModal.vue'
+import SaveWindow from './components/SaveWindow.vue'
 
-const activeTab = ref(0)
+const canvasEl = ref(null)
+const AREA_SIZE = CELL * 20
 
-const tabs = [
-  { label: 'A1 · 草', unlocked: true },
-  { label: 'A2 · 反草', unlocked: false },
-  { label: 'A3 · 非自然草', unlocked: false },
-  { label: 'A4 · 小行星草', unlocked: false },
-  { label: 'B1 · 星星', unlocked: false },
-  { label: 'B2 · 暗物质', unlocked: false },
-  { label: 'B3 · 光物质', unlocked: false },
-  { label: 'B4 · 超新星', unlocked: false },
-]
+const canvasStyle = computed(() => {
+  void viewTick.value
+  return {
+    transform: `translate(${gameState.viewX}px, ${gameState.viewY}px) scale(${gameState.viewScale})`,
+    transformOrigin: '0 0',
+  }
+})
+
+const canvasInfoText = computed(() => {
+  void viewTick.value
+  return `画布位置 (${Math.round(gameState.viewX)}, ${Math.round(gameState.viewY)}) 缩放 ×${gameState.viewScale.toFixed(1)}`
+})
+
+function areaStyle(idx, isAdvanced) {
+  const pos = isAdvanced ? getAdvancedAreaPos(idx) : getAreaPos(idx)
+  return { left: pos.x + 'px', top: pos.y + 'px' }
+}
+
+function areaTitle(idx) { return `A${idx + 1} · ${AREA_FULL_NAMES[idx]}` }
+function advTitle(idx) { return `B${idx + 1} · ${ADVANCED_AREAS[idx].name}` }
+
+// 拖拽
+let dragging = false
+let dragStartX = 0, dragStartY = 0
+let viewStartX = 0, viewStartY = 0
+let dragThreshold = false
+
+function startDrag(e) {
+  // 不拦截交互元素的拖拽
+  if (e.target.closest('button, .upgrade-tile, .grass-field, .reset-btn, .modal-overlay')) return
+  dragging = true
+  dragThreshold = false
+  dragStartX = e.clientX; dragStartY = e.clientY
+  viewStartX = gameState.viewX; viewStartY = gameState.viewY
+}
+
+function onDrag(e) {
+  if (!dragging) return
+  const dx = e.clientX - dragStartX
+  const dy = e.clientY - dragStartY
+  if (!dragThreshold && Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+  dragThreshold = true
+  document.body.style.cursor = 'grabbing'
+  gameState.viewX = viewStartX + dx
+  gameState.viewY = viewStartY + dy
+  // 直接操作 DOM 实现流畅拖拽
+  if (canvasEl.value) {
+    canvasEl.value.style.transform = `translate(${gameState.viewX}px, ${gameState.viewY}px) scale(${gameState.viewScale})`
+  }
+}
+
+function endDrag() {
+  if (dragging) {
+    dragging = false
+    document.body.style.cursor = ''
+    viewTick.value++ // 同步到 Vue
+  }
+}
+
+function onZoom(e) {
+  const delta = e.deltaY > 0 ? -0.1 : 0.1
+  gameState.viewScale = Math.max(0.2, Math.min(3, gameState.viewScale + delta))
+  viewTick.value++
+}
 
 let tickInterval = null
 
 onMounted(() => {
-  // 自动加载存档，失败则清除
+  gameState.viewX = window.innerWidth / 2 - AREA_SIZE / 2 + 1280
+  gameState.viewY = window.innerHeight / 2 - 200
+  gameState.viewScale = 1
+
   if (hasSave()) {
-    try {
-      const loaded = loadFromLocal()
-      // 验证加载的数据是否正常 (检查关键字段是否为 Decimal)
-      if (loaded && gameState.areas[0]) {
-        const gp = gameState.areas[0].grassField?.grassPerSec
-        if (!gp || typeof gp.mul !== 'function') {
-          // 数据损坏，清除存档
-          localStorage.removeItem('nrgci_save')
-          window.location.reload()
-          return
-        }
-      }
-    } catch (e) {
-      localStorage.removeItem('nrgci_save')
-    }
+    const loaded = loadFromLocal()
+    if (!loaded) localStorage.removeItem('nrgci_save')
   }
-  // 更新tab解锁状态
-  updateTabUnlocks()
-  // 游戏循环
-  tickInterval = setInterval(() => {
-    gameTick()
-    updateTabUnlocks()
-  }, gameState.tickSpeed)
-  // 自动保存
+  tickInterval = setInterval(gameTick, gameState.tickSpeed)
   startAutoSave(30000)
 })
 
@@ -110,137 +151,60 @@ onUnmounted(() => {
   if (tickInterval) clearInterval(tickInterval)
   stopAutoSave()
 })
-
-function updateTabUnlocks() {
-  for (let i = 0; i < 4; i++) {
-    tabs[i].unlocked = gameState.areas[i].unlocked
-  }
-  for (let i = 0; i < 4; i++) {
-    tabs[i + 4].unlocked = gameState.advancedAreas[i].unlocked
-  }
-}
-
-function saveGame() { saveToLocal() }
-function loadGame() { loadFromLocal() }
-function exportClipboard() { exportToClipboard() }
-function importClipboard() { importFromClipboard() }
-function exportFile() { exportToFile() }
-function importFile() { importFromFile() }
-function doHardReset() {
-  if (confirm('确定要硬重置吗？所有进度将丢失！')) {
-    hardReset()
-    updateTabUnlocks()
-    activeTab.value = 0
-  }
-}
 </script>
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #0d1117;
+  background: #0a0a0f;
   color: #c9d1d9;
   font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-  font-size: 14px;
-}
-.app {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 10px;
-  min-height: 100vh;
-}
-.header {
-  text-align: center;
-  padding: 10px 0;
-  border-bottom: 2px solid #30363d;
-  margin-bottom: 10px;
-}
-.header h1 {
-  font-size: 24px;
-  color: #58a6ff;
-  margin-bottom: 4px;
-}
-.subtitle {
   font-size: 12px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.app-container { width: 100vw; height: 100vh; position: relative; }
+
+.fixed-buttons {
+  position: fixed; top: 10px; right: 10px; z-index: 100;
+  display: flex; gap: 8px; align-items: center;
+}
+.canvas-info {
+  font-size: 10px;
   color: #8b949e;
-}
-.save-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: center;
-  margin-top: 8px;
-}
-.btn {
+  background: #161b22cc;
+  border: 1px solid #30363d;
+  border-radius: 4px;
   padding: 4px 10px;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  background: #21262d;
-  color: #c9d1d9;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.15s;
+  white-space: nowrap;
+  pointer-events: none;
 }
-.btn:hover { background: #30363d; border-color: #58a6ff; }
-.btn-danger { color: #f85149; border-color: #f8514940; }
-.btn-danger:hover { background: #f8514920; }
+.fixed-btn {
+  padding: 8px 16px; border: 2px solid #58a6ff;
+  border-radius: 8px; background: #161b22; color: #58a6ff;
+  cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.15s;
+}
+.fixed-btn:hover { background: #1c2533; }
 
-.tab-bar {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-.tab {
-  padding: 6px 14px;
-  border: 1px solid #30363d;
-  background: #161b22;
-  color: #8b949e;
-  cursor: pointer;
-  border-radius: 6px 6px 0 0;
-  font-size: 13px;
-  transition: all 0.15s;
-}
-.tab.active {
-  background: #1c2533;
-  color: #58a6ff;
-  border-bottom-color: #1c2533;
-}
-.tab.locked {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.tab:not(.locked):hover {
-  background: #21262d;
-  color: #c9d1d9;
+.canvas-viewport {
+  width: 100%; height: 100%; cursor: grab; overflow: hidden;
+  background: radial-gradient(circle, #111 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.area-panel {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 8px;
-  padding: 15px;
-  min-height: 400px;
-}
+.canvas-content { position: relative; width: 0; height: 0; }
 
-.notifications {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 1000;
-  max-width: 300px;
+.area-block {
+  position: absolute; width: 1280px;
+  background: #161b2222; border: 2px solid #30363d;
+  border-radius: 8px; padding: 4px;
+  pointer-events: auto; cursor: default;
 }
-.notification {
-  background: #1c2533;
-  border: 1px solid #58a6ff;
-  border-radius: 6px;
-  padding: 6px 10px;
-  margin-bottom: 4px;
-  font-size: 12px;
-  animation: fadeIn 0.3s;
+.adv-area { border-color: #a371f744; background: #1a1a2a22; }
+.area-title {
+  font-size: 14px; font-weight: bold; color: #58a6ff;
+  padding: 2px 6px; margin-bottom: 2px;
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.adv-title { color: #a371f7; }
 </style>
