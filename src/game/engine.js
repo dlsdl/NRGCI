@@ -54,7 +54,7 @@ export const RESET_NAMES = [
     l3B2Desc: '重置草跨重置的东西\n获得行星/暗充能' },
 ]
 export const ADVANCED_AREAS = [
-  { id: 'star', name: '星星', emoji: '⭐' },
+  { id: 'star', name: '星星', emoji: '✨' },
   { id: 'darkMatter', name: '暗物质', emoji: '🌑' },
   { id: 'lightMatter', name: '光物质', emoji: '💡' },
   { id: 'supernova', name: '超新星', emoji: '💥' },
@@ -67,23 +67,23 @@ export const AREA_RESOURCES_LIST = [
     { id: 'crystal', name: '水晶', emoji: '💎' },
     { id: 'steel', name: '钢', emoji: '🔩' },
     { id: 'perk', name: '级点', emoji: '📌' },
-    { id: 'cuprum', name: '铜', emoji: '🟤' },
+    { id: 'cuprum', name: '铜', emoji: '🟠' },
     { id: 'charge', name: '充能', emoji: '⚡' },
   ],
   [
     { id: 'antiGrass', name: '反草', emoji: '🌪️' },
-    { id: 'anonymousPoint', name: '匿名点', emoji: '❓' },
+    { id: 'anonymousPoint', name: '匿名点', emoji: '📛' },
     { id: 'oil', name: '石油', emoji: '🛢️' },
-    { id: 'fun', name: '乐趣', emoji: '🎉' },
+    { id: 'fun', name: '乐趣', emoji: '😄' },
     { id: 'antiPerk', name: '反级点', emoji: '📍' },
     { id: 'argentum', name: '银', emoji: '⚪' },
-    { id: 'sfrgt', name: 'SFRGT', emoji: '🌟' },
+    { id: 'sfrgt', name: 'SFRGT', emoji: '🌼' },
   ],
   [
     { id: 'unnaturalGrass', name: '非自然草', emoji: '🌱' },
     { id: 'normalityPoint', name: '正常点', emoji: '✅' },
     { id: 'cloud', name: '云', emoji: '☁️' },
-    { id: 'darkvision', name: '暗视', emoji: '🌑' },
+    { id: 'darkvision', name: '暗视', emoji: '👁️' },
     { id: 'unnaturalPerk', name: '非自然级点', emoji: '📎' },
     { id: 'aurum', name: '金', emoji: '🟡' },
     { id: 'afwcs', name: 'AFWCS', emoji: '😰' },
@@ -91,10 +91,10 @@ export const AREA_RESOURCES_LIST = [
   [
     { id: 'planetoidGrass', name: '小行星草', emoji: '🪐' },
     { id: 'quadrantPoint', name: '四分点', emoji: '🔷' },
-    { id: 'plasma', name: '等离子体', emoji: '💫' },
+    { id: 'plasma', name: '等离子体', emoji: '🔥' },
     { id: 'planet', name: '行星', emoji: '🌍' },
     { id: 'questionPerk', name: '？！级点', emoji: '⁉️' },
-    { id: 'roentgenium', name: '𬬭', emoji: '🟣' },
+    { id: 'roentgenium', name: '𬬭', emoji: '⚫️' },
     { id: 'darkCharge', name: '暗充能', emoji: '🌌' },
   ],
 ]
@@ -119,35 +119,37 @@ const UPGRADES_CSV = `111,"grass",10,1.333,"Infinity","每级使草的获得数�
 121,"prestige",1,1.333,"Infinity","每级使草的获得数量+50%,每10级使草的获得数量×1.5"
 122,"prestige",3,1.333,"Infinity","每级使经验的获得数量+50%,每10级使经验的获得数量×1.5"
 123,"prestige",15,1.333,"Infinity","每级使二重经验获得数量+100%,每10级使二重经验的获得数量×2"
-124,"prestige",150,1.5,"Infinity","每级使水晶的获得数量+25%,每10级使水晶的获得数量×1.25"
+124,"prestige",105,1.5,"Infinity","每级使水晶的获得数量+25%,每10级使水晶的获得数量×1.25"
 131,"crystal",1,1.333,"Infinity","每级使草的获得数量+50%,每10级使草的获得数量×1.5"
 132,"crystal",2,1.333,"Infinity","每级使经验的获得数量+50%,每10级使经验的获得数量×1.5"
 133,"crystal",6,1.333,"Infinity","每级使二重经验获得数量+100%,每10级使二重经验的获得数量×2"
 134,"crystal",24,1.5,"Infinity","每级使声望点的获得数量+25%,每10级使声望点的获得数量×1.25"
-141,"steel",1,1.15,"90","解锁钢增益升级(181~184)，每级使钢增益升级效果+10%"
-142,"steel",1e3,1.15,"90","解锁自动增益升级(191~194)，每级使自动增益升级效果+10%"
+141,"steel",1,1.15,"90","解锁钢增益升级，每级使钢增益升级效果+10%"
+142,"steel",1e3,1.15,"90","解锁自动增益升级，每级使自动增益升级效果+10%"
 143,"steel",1e6,1.15,"90","解锁生成物品（充能），每级使充能获得数量+10%"
-144,"steel",1e12,1.15,"90","解锁A2区域，每级使充能获得数量+10%"
-145,"steel",1e18,1.15,"90","解锁充能升级(171~174)，每级使充能获得数量+10%"
-146,"steel",1e22,1.15,"90","解锁B1区域，每级使充能获得数量+10%"
+144,"steel",1e9,1.15,"90","解锁更多自动化升级，每级使充能获得数量+10%"
+145,"steel",1e12,1.15,"90","解锁A2区域，每级使充能获得数量+10%"
+146,"steel",1e15,1.15,"90","解锁火箭燃料（fuel，需要充能charge和石油oil合成），每级使充能获得数量+10%"
+147,"steel",1e18,1.15,"90","解锁火箭部件（part，需要火箭燃料fuel和钢steel合成），每级使充能获得数量+10%"
+147,"steel",1e21,1.15,"90","解锁B1区域，每级使充能获得数量+10%"
 151,"perk",1,1,"99","草的获得数量+100%"
 152,"perk",1,1,"9","一次点击割草数量的倍数+1"
-153,"perk",1,1,"90","经验的获得数量+10%"
-154,"perk",2,1,"90","二重经验的获得数量+10%"
-155,"perk",5,1,"90","声望点的获得数量+10%"
-156,"perk",10,1,"90","水晶的获得数量+10%"
-157,"perk",20,1,"90","钢的获得数量+10%"
-158,"perk",50,1,"90","充能的获得数量+10%"
+153,"perk",2,1,"90","经验的获得数量+10%"
+154,"perk",5,1,"90","二重经验的获得数量+10%"
+155,"perk",10,1,"90","声望点的获得数量+10%"
+156,"perk",20,1,"90","水晶的获得数量+10%"
+157,"perk",50,1,"90","钢的获得数量+10%"
+158,"perk",100,1,"90","充能的获得数量+10%"
 161,"cuprum",10,1,"45","草的获得数量+20%"
 162,"cuprum",10,1,"45","经验的获得数量+20%"
 163,"cuprum",50,1,"45","声望点的获得数量+20%"
 164,"cuprum",50,1,"45","水晶的获得数量+20%"
 165,"cuprum",250,1,"45","钢的获得数量+20%"
 166,"cuprum",250,1,"45","充能的获得数量+20%"
-171,"charge",1e27,1.01,"9900","草的获得数量+1%"
-172,"charge",1e28,1.01,"9900","声望点的获得数量+1%"
-173,"charge",1e29,1.01,"9900","水晶的获得数量+1%"
-174,"charge",1e30,1.01,"9900","钢的获得数量+1%"
+171,"charge",1e21,1.2,"99","草的获得数量+100%"
+172,"charge",1e22,1.2,"99","声望点的获得数量+100%"
+173,"charge",1e23,1.2,"99","水晶的获得数量+100%"
+174,"charge",1e34,1.2,"99","钢的获得数量+100%"
 181,"grass",1e24,2,"999","钢的获取数量+100%"
 182,"prestige",1e12,1.2,"999","钢的获取数量+100%"
 183,"crystal",1e9,1.2,"999","钢的获取数量+100%"
@@ -158,14 +160,16 @@ const UPGRADES_CSV = `111,"grass",10,1.333,"Infinity","每级使草的获得数�
 194,"steel",1e3,1.2,"99","每秒自动生成的水晶+1%"
 1A1,"grass",1000,10,"5","每5秒自动割1次草，之后每级使时间间隔-1"
 1A2,"grass",1e8,10,"9","自动割草获得的资源数量+100%"
-1A3,"prestige",100,1,"1","自动购买草升级"
+1A3,"grass",1e15,1,"1","自动购买草升级"
 1A4,"prestige",1e4,1,"1","每秒自动生成重置时能获得声望点的+1%"
-1A5,"prestige",1e6,1,"1","购买草升级不再消耗草"
-1A6,"crystal",100,1,"1","自动购买声望升级"
+1A5,"prestige",1e8,1,"1","自动购买声望升级"
+1A6,"prestige",1e12,1,"1","声望不再重置级点和级点升级"
 1A7,"crystal",1e4,1,"1","每秒自动生成重置时能获得水晶的+1%"
-1A8,"crystal",1e6,1,"1","购买声望升级不再消耗声望"
-1A9,"steel",100,1,"1","自动购买水晶升级"
-1AA,"steel",1e4,1,"1","购买水晶升级不再消耗水晶"`
+1A8,"crystal",1e8,1,"1","自动购买水晶升级"
+1A9,"crystal",1e12,1,"1","结晶不再重置级点和级点升级"
+1AA,"steel",1e9,1,"1","购买草升级不再消耗草"
+1AB,"steel",1e10,1,"1","购买水晶升级不再消耗水晶"
+1AC,"steel",1e11,1,"1","购买声望升级不再消耗声望"`
 
 function parseCSV(csv) {
   const lines = csv.trim().split('\n')
@@ -196,12 +200,32 @@ export function getUpgradeCategory(id) {
   if (p === '13') return { cat: 'crystal', name: '水晶升级', emoji: '💎', idx: 2 }
   if (p === '14') return { cat: 'steel', name: '钢升级', emoji: '🔩', idx: 3 }
   if (p === '15') return { cat: 'perk', name: '级点升级', emoji: '📌', idx: 4 }
-  if (p === '16') return { cat: 'cuprum', name: '铜升级', emoji: '🟤', idx: 5 }
+  if (p === '16') return { cat: 'cuprum', name: '铜升级', emoji: '🟠', idx: 5 }
   if (p === '17') return { cat: 'charge', name: '充能升级', emoji: '⚡', idx: 6 }
   if (p === '18') return { cat: 'steelGain', name: '钢增益', emoji: '🔩', idx: 7 }
   if (p === '19') return { cat: 'autoGain', name: '自动增益', emoji: '⚙️', idx: 8 }
   if (p === '1A') return { cat: 'automation', name: '自动化', emoji: '🤖', idx: 9 }
   return { cat: 'unknown', name: '', emoji: '', idx: -1 }
+}
+
+// 升级解锁条件
+export function isUpgradeUnlocked(ai, id) {
+  const area = gameState.areas[ai]
+  const prefix = id.substring(0, 2)
+  if (prefix === '11') return true
+  if (prefix === '12') return area.resetCounts.layer1 > 0
+  if (prefix === '13') return area.resetCounts.layer2 > 0
+  if (prefix === '14') return area.resetCounts.layer3B2 > 0
+  if (prefix === '15') return area.resetCounts.layer1 > 0
+  if (prefix === '16') return area.resetCounts.layer2 > 0
+  if (prefix === '17') return getUpgradeLevel(ai, '143') >= 1
+  if (prefix === '18') return getUpgradeLevel(ai, '141') >= 1
+  if (prefix === '19') return getUpgradeLevel(ai, '142') >= 1
+  if (prefix === '1A') {
+    if (id === '1AA' || id === '1AB' || id === '1AC') return getUpgradeLevel(ai, '144') >= 1
+    return true
+  }
+  return false
 }
 
 // 计算升级价格
@@ -362,11 +386,10 @@ export const gameState = {
 }
 
 // ============ XP ============
-export function totalXpForLevel(lv) {
-  if (lv <= 0) return D0
-  let t = D0
-  for (let i = 1; i <= lv; i++) t = t.add(D(10).mul(i).mul(D(1.3333).pow(i)))
-  return t
+export function xpForLevelUp(lv) {
+  // 从等级 lv 升到 lv+1 所需经验 = 100 × (lv + 1) × 1.2^lv
+  if (lv < 0) return D0
+  return D(100).mul(lv + 1).mul(D(1.2).pow(lv))
 }
 
 export function doubleXpCost(lv) { return D(10000).pow(lv + 1) }
@@ -376,22 +399,11 @@ export function getUpgradeLevel(ai, id) {
   return gameState.areas[ai].upgrades[id]?.level || 0
 }
 
-// ============ 割草 ============
-export function cutGrass(areaIndex) {
+// ============ 割草收益计算 ============
+function calcCutGains(areaIndex, cutAmount) {
   const area = gameState.areas[areaIndex]
-  if (!area || !area.unlocked) return
-  // 确保草是整数，防止浮点错误和负数
-  area.grassField.grass = Math.max(0, Math.floor(area.grassField.grass))
-  if (area.grassField.grass < 1) return
-
-  // 一次割草数量 = (1 + 升级115等级) × (1 + 升级152等级)
-  const cutAmount = (1 + getUpgradeLevel(areaIndex, '115')) * (1 + getUpgradeLevel(areaIndex, '152'))
-  const actualCut = Math.min(cutAmount, area.grassField.grass)
-  area.grassField.grass -= actualCut
-
-  const gk = grassKey(areaIndex)
+  // 草收益
   let gain = D1
-
   const u111 = getUpgradeLevel(areaIndex, '111')
   gain = gain.mul(D(2).pow(Math.floor(u111 / 10))).mul(D(1).add(D(u111)))
   const u121 = getUpgradeLevel(areaIndex, '121')
@@ -400,29 +412,19 @@ export function cutGrass(areaIndex) {
   gain = gain.mul(D(1.5).pow(Math.floor(u131 / 10))).mul(D(1).add(D(u131).mul(0.5)))
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '151'))))
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '161')).mul(0.2)))
-  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '171')).mul(0.01)))
-
+  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '171'))))
   if (area.doubleUnlocked && area.doubleLevel > 0) gain = gain.mul(D(10).pow(area.doubleLevel))
   if (areaIndex === 0 && gameState.areas[0].level > 0) gain = gain.mul(D(1).add(D(gameState.areas[0].level)))
   if (gameState.areas[2].level > 0) gain = gain.mul(D(1).add(D(gameState.areas[2].level).mul(0.05)))
-
-  // 乘上实际割草数量
-  gain = gain.mul(actualCut).mul(gameState.gameSpeed)
-
+  gain = gain.mul(cutAmount).mul(gameState.gameSpeed)
   const hopEff = applyGrassHopEffects(areaIndex)
   gain = gain.mul(hopEff.grass)
-
   const chEff = applyChargeEffects(areaIndex)
   gain = gain.mul(chEff.grass)
-
   if (area.milestones.layer3B1 >= 12) {
     gain = gain.mul(D(2).pow(Math.min(area.milestones.layer3B1 - 11, Math.log2(1e6))))
   }
-
-  area.resources[gk] = ensureDec(area.resources[gk]).add(gain)
-  gameState.totalGrassCut = gameState.totalGrassCut.add(gain)
-
-  // 经验（同样乘 actualCut）
+  // 经验
   let xpGain = D1
   xpGain = xpGain.mul(D(2).pow(Math.floor(getUpgradeLevel(areaIndex, '114') / 10))).mul(D(1).add(D(getUpgradeLevel(areaIndex, '114'))))
   xpGain = xpGain.mul(D(1.5).pow(Math.floor(getUpgradeLevel(areaIndex, '122') / 10))).mul(D(1).add(D(getUpgradeLevel(areaIndex, '122')).mul(0.5)))
@@ -430,20 +432,37 @@ export function cutGrass(areaIndex) {
   xpGain = xpGain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '153')).mul(0.1)))
   xpGain = xpGain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '162')).mul(0.2)))
   if (area.doubleUnlocked && area.doubleLevel > 0) xpGain = xpGain.mul(D(10).pow(area.doubleLevel))
-  xpGain = xpGain.mul(hopEff.xp).mul(chEff.xp).mul(actualCut).mul(gameState.gameSpeed)
-  area.xp = ensureDec(area.xp).add(xpGain)
-  gameState.totalXpEarned = gameState.totalXpEarned.add(xpGain)
-
-  // 二重经验（同样乘 actualCut）
+  xpGain = xpGain.mul(hopEff.xp).mul(chEff.xp).mul(cutAmount).mul(gameState.gameSpeed)
+  // 二重经验
+  let dXp = null
   if (area.doubleUnlocked) {
-    let dXp = D1
+    dXp = D1
     dXp = dXp.mul(D(2).pow(Math.floor(getUpgradeLevel(areaIndex, '123') / 10))).mul(D(1).add(D(getUpgradeLevel(areaIndex, '123'))))
     dXp = dXp.mul(D(2).pow(Math.floor(getUpgradeLevel(areaIndex, '133') / 10))).mul(D(1).add(D(getUpgradeLevel(areaIndex, '133'))))
     dXp = dXp.mul(D(1).add(D(getUpgradeLevel(areaIndex, '154')).mul(0.1)))
-    dXp = dXp.mul(hopEff.doubleXp).mul(chEff.doubleXp).mul(actualCut).mul(gameState.gameSpeed)
-    area.doubleXp = ensureDec(area.doubleXp).add(dXp)
+    dXp = dXp.mul(hopEff.doubleXp).mul(chEff.doubleXp).mul(cutAmount).mul(gameState.gameSpeed)
   }
+  return { gain, xpGain, dXp }
+}
 
+// ============ 割草 ============
+export function cutGrass(areaIndex) {
+  const area = gameState.areas[areaIndex]
+  if (!area || !area.unlocked) return
+  area.grassField.grass = Math.max(0, Math.floor(area.grassField.grass))
+  if (area.grassField.grass < 1) return
+
+  const cutAmount = (1 + getUpgradeLevel(areaIndex, '115')) * (1 + getUpgradeLevel(areaIndex, '152'))
+  const actualCut = Math.min(cutAmount, area.grassField.grass)
+  area.grassField.grass -= actualCut
+
+  const { gain, xpGain, dXp } = calcCutGains(areaIndex, actualCut)
+  const gk = grassKey(areaIndex)
+  area.resources[gk] = ensureDec(area.resources[gk]).add(gain)
+  gameState.totalGrassCut = gameState.totalGrassCut.add(gain)
+  area.xp = ensureDec(area.xp).add(xpGain)
+  gameState.totalXpEarned = gameState.totalXpEarned.add(xpGain)
+  if (dXp) area.doubleXp = ensureDec(area.doubleXp).add(dXp)
   checkLevelUp(areaIndex)
   if (area.unlockedFeatures.rares) rollRareItems(areaIndex)
 }
@@ -451,8 +470,9 @@ export function cutGrass(areaIndex) {
 function checkLevelUp(areaIndex) {
   const area = gameState.areas[areaIndex]
   while (true) {
-    const needed = totalXpForLevel(area.level + 1)
+    const needed = xpForLevelUp(area.level)
     if (ensureDec(area.xp).gte(needed)) {
+      area.xp = ensureDec(area.xp).sub(needed)
       area.level++
       area.resources[perkKey(areaIndex)] = ensureDec(area.resources[perkKey(areaIndex)]).add(D1)
       checkUnlocks(areaIndex)
@@ -491,11 +511,11 @@ function checkUnlocks(areaIndex) {
     area.unlockedFeatures.layer3B2 = true
     addNotification(`${AREA_FULL_NAMES[areaIndex]}: 钢化已解锁`)
   }
-  if (getUpgradeLevel(areaIndex, '144') >= 1 && areaIndex < 3 && !gameState.areas[areaIndex + 1].unlocked) {
+  if (getUpgradeLevel(areaIndex, '145') >= 1 && areaIndex < 3 && !gameState.areas[areaIndex + 1].unlocked) {
     gameState.areas[areaIndex + 1].unlocked = true
     addNotification(`${AREA_FULL_NAMES[areaIndex + 1]} 已解锁`)
   }
-  if (getUpgradeLevel(areaIndex, '146') >= 1 && !gameState.advancedAreas[areaIndex].unlocked) {
+  if (getUpgradeLevel(areaIndex, '147') >= 1 && !gameState.advancedAreas[areaIndex].unlocked) {
     gameState.advancedAreas[areaIndex].unlocked = true
     addNotification(`B${areaIndex + 1} (${ADVANCED_AREAS[areaIndex].name}) 已解锁`)
   }
@@ -515,13 +535,13 @@ export function doLayer1Reset(areaIndex) {
   const gk = grassKey(areaIndex); const pk = prestKey(areaIndex)
   const grass = ensureDec(area.resources[gk])
   if (!grass.eq(0)) {
-    let gain = D(1.4142).pow(area.level / 10)
+    let gain = D(1.4142).pow(area.level / 10 - 3).mul(10)
     if (grass.gt(0)) gain = gain.mul(D(1.1487).pow(Math.max(0, Math.log10(grass.toNumber()))))
     const u116 = getUpgradeLevel(areaIndex, '116')
     gain = gain.mul(D(1.25).pow(Math.floor(u116 / 10))).mul(D(1).add(D(u116).mul(0.25)))
     gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '155')).mul(0.1)))
     gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '163')).mul(0.2)))
-    gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '172')).mul(0.01)))
+    gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '172'))))
     gain = gain.floor().max(D1)
     area.resources[pk] = ensureDec(area.resources[pk]).add(gain)
     area.resetCounts.layer1++
@@ -530,6 +550,11 @@ export function doLayer1Reset(areaIndex) {
   area.resources[gk] = D(0)
   area.upgrades['111'].level = 0; area.upgrades['112'].level = 0; area.upgrades['113'].level = 0
   area.upgrades['114'].level = 0; area.upgrades['115'].level = 0; area.upgrades['116'].level = 0
+  // 重置级点和级点升级（除非购买了1A6）
+  if (getUpgradeLevel(areaIndex, '1A6') <= 0) {
+    area.resources[perkKey(areaIndex)] = D(0)
+    for (const id of ['151', '152', '153', '154', '155', '156', '157', '158']) area.upgrades[id].level = 0
+  }
   area.xp = D(0); area.level = 0; area.doubleXp = D(0); area.doubleLevel = 0
 }
 
@@ -538,7 +563,7 @@ export function doLayer2Reset(areaIndex) {
   const area = gameState.areas[areaIndex]
   if (area.level < 100) return
   const gk = grassKey(areaIndex); const pk = prestKey(areaIndex); const ck = crystKey(areaIndex)
-  let gain = D(1.1892).pow(area.level / 10)
+  let gain = D(1.1892).pow(area.level / 10 - 10).mul(10)
   if (ensureDec(area.resources[gk]).gt(0)) {
     gain = gain.mul(D(1.0718).pow(Math.max(0, Math.log10(ensureDec(area.resources[gk]).toNumber()))))
   }
@@ -546,13 +571,18 @@ export function doLayer2Reset(areaIndex) {
   gain = gain.mul(D(1.25).pow(Math.floor(u124 / 10))).mul(D(1).add(D(u124).mul(0.25)))
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '156')).mul(0.1)))
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '164')).mul(0.2)))
-  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '173')).mul(0.01)))
+  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '173'))))
   gain = gain.floor().max(D1)
   area.resources[ck] = ensureDec(area.resources[ck]).add(gain)
   area.resetCounts.layer2++
 
   area.resources[gk] = D(0); area.resources[pk] = D(0)
   for (const id of ['111', '112', '113', '114', '115', '116', '121', '122', '123', '124']) area.upgrades[id].level = 0
+  // 重置级点和级点升级（除非购买了1A9）
+  if (getUpgradeLevel(areaIndex, '1A9') <= 0) {
+    area.resources[perkKey(areaIndex)] = D(0)
+    for (const id of ['151', '152', '153', '154', '155', '156', '157', '158']) area.upgrades[id].level = 0
+  }
   area.xp = D(0); area.level = 0; area.doubleXp = D(0); area.doubleLevel = 0
   addNotification(`${AREA_FULL_NAMES[areaIndex]}: 结晶 ×${area.resetCounts.layer2} 获得 ${fmt(gain)}`)
 }
@@ -571,7 +601,7 @@ export function doLayer3Branch1Reset(areaIndex) {
   let gain = D1
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '157')).mul(0.1)))
   gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '165')).mul(0.2)))
-  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '174')).mul(0.01)))
+  gain = gain.mul(D(1).add(D(getUpgradeLevel(areaIndex, '174'))))
   for (const id of ['181', '182', '183', '184']) gain = gain.mul(D(2).pow(getUpgradeLevel(areaIndex, id)))
   gain = gain.mul(applyGrassHopEffects(areaIndex).steel)
 
@@ -581,6 +611,9 @@ export function doLayer3Branch1Reset(areaIndex) {
 
   area.resources[gk] = D(0); area.resources[pk] = D(0); area.resources[ck] = D(0)
   for (const id of ['111', '112', '113', '114', '115', '116', '121', '122', '123', '124', '131', '132', '133', '134']) area.upgrades[id].level = 0
+  // 重置级点和级点升级（草蹦始终重置）
+  area.resources[perkKey(areaIndex)] = D(0)
+  for (const id of ['151', '152', '153', '154', '155', '156', '157', '158']) area.upgrades[id].level = 0
   area.xp = D(0); area.level = 0
   addNotification(`${AREA_FULL_NAMES[areaIndex]}: 草蹦 #${area.milestones.layer3B1} 获得 ${fmt(gain)}`)
 }
@@ -603,6 +636,9 @@ export function doLayer3Branch2Reset(areaIndex) {
 
   area.resources[gk] = D(0); area.resources[pk] = D(0); area.resources[ck] = D(0)
   for (const id of ['111', '112', '113', '114', '115', '116', '121', '122', '123', '124', '131', '132', '133', '134']) area.upgrades[id].level = 0
+  // 重置级点和级点升级（钢化始终重置）
+  area.resources[perkKey(areaIndex)] = D(0)
+  for (const id of ['151', '152', '153', '154', '155', '156', '157', '158']) area.upgrades[id].level = 0
   area.xp = D(0); area.level = 0
   addNotification(`${AREA_FULL_NAMES[areaIndex]}: 钢化完成`)
 }
@@ -626,6 +662,7 @@ export function buyUpgrade(areaIndex, upgradeId) {
   const area = gameState.areas[areaIndex]
   const def = area.upgrades[upgradeId]
   if (!def) return
+  if (!isUpgradeUnlocked(areaIndex, upgradeId)) return
   // 防御：上限为 null/undefined 视为无上限
   const cap = (def.cap === null || def.cap === undefined) ? Infinity : def.cap
   if (def.level >= cap) return
@@ -640,7 +677,6 @@ export function buyUpgrade(areaIndex, upgradeId) {
     def.level++
     if (upgradeId === '143') gameState.areas[areaIndex].unlockedFeatures.generators = true
     if (upgradeId === '142') gameState.areas[areaIndex].unlockedFeatures.autoGain = true
-    if (upgradeId === '145') gameState.areas[areaIndex].unlockedFeatures.chargeUpgrades = true
     checkUnlocks(areaIndex)
   }
 }
@@ -658,6 +694,7 @@ export function canAffordUpgrade(ai, id) {
   try {
     const a = gameState.areas[ai]; const def = a.upgrades[id]
     if (!def) return false
+    if (!isUpgradeUnlocked(ai, id)) return false
     const cap = (def.cap === null || def.cap === undefined) ? Infinity : def.cap
     if (def.level >= cap) return false
     if (isUpgradeFree(ai, id)) return true
@@ -710,26 +747,34 @@ function autoTick(ai, tm) {
   const area = gameState.areas[ai]
   const pk = prestKey(ai); const ck = crystKey(ai)
 
-  // 自动割草
+  // 自动割草（不减少草地上的草，直接获得收益）
   const al = getUpgradeLevel(ai, '1A1')
   if (al > 0) {
     area.autoTimers.cut += tm
-    // 基础间隔 5 秒 = 100 ticks (50ms/tick)，每升 1 级减 1 秒 = 20 ticks
     const ivTicks = Math.max(2, 100 - (al - 1) * 20)
-    while (area.autoTimers.cut >= ivTicks && area.grassField.grass > 0) {
+    while (area.autoTimers.cut >= ivTicks) {
       area.autoTimers.cut -= ivTicks
-      cutGrass(ai)
+      const { gain, xpGain, dXp } = calcCutGains(ai, 1)
+      const a2Mult = D(1).add(D(getUpgradeLevel(ai, '1A2')))
+      const gk = grassKey(ai)
+      area.resources[gk] = ensureDec(area.resources[gk]).add(gain.mul(a2Mult))
+      gameState.totalGrassCut = gameState.totalGrassCut.add(gain.mul(a2Mult))
+      area.xp = ensureDec(area.xp).add(xpGain.mul(a2Mult))
+      gameState.totalXpEarned = gameState.totalXpEarned.add(xpGain.mul(a2Mult))
+      if (dXp) area.doubleXp = ensureDec(area.doubleXp).add(dXp.mul(a2Mult))
+      checkLevelUp(ai)
+      if (area.unlockedFeatures && area.unlockedFeatures.rares) rollRareItems(ai)
     }
   }
 
   // 自动购买
-  if (getUpgradeLevel(ai, '1A3') > 0 || getUpgradeLevel(ai, '1A6') > 0 || getUpgradeLevel(ai, '1A9') > 0) {
+  if (getUpgradeLevel(ai, '1A3') > 0 || getUpgradeLevel(ai, '1A5') > 0 || getUpgradeLevel(ai, '1A8') > 0) {
     area.autoTimers.buy += tm
     if (area.autoTimers.buy >= 1000) {
       area.autoTimers.buy -= 1000
       if (getUpgradeLevel(ai, '1A3') > 0) autoBuy(ai, '11')
-      if (getUpgradeLevel(ai, '1A6') > 0) autoBuy(ai, '12')
-      if (getUpgradeLevel(ai, '1A9') > 0) autoBuy(ai, '13')
+      if (getUpgradeLevel(ai, '1A5') > 0) autoBuy(ai, '12')
+      if (getUpgradeLevel(ai, '1A8') > 0) autoBuy(ai, '13')
     }
   }
 
@@ -751,14 +796,22 @@ function autoTick(ai, tm) {
     }
   }
 
-  area.grassFree = getUpgradeLevel(ai, '1A5') > 0
-  area.prestigeFree = getUpgradeLevel(ai, '1A8') > 0
-  area.crystalFree = getUpgradeLevel(ai, '1AA') > 0
+  area.grassFree = getUpgradeLevel(ai, '1AA') > 0
+  area.prestigeFree = getUpgradeLevel(ai, '1AC') > 0
+  area.crystalFree = getUpgradeLevel(ai, '1AB') > 0
 }
 
 function autoBuy(ai, prefix) {
-  for (const id in gameState.areas[ai].upgrades) {
-    if (id.startsWith(prefix) && canAffordUpgrade(ai, id)) { buyUpgrade(ai, id); break }
+  const area = gameState.areas[ai]
+  // 每秒尝试购买所有可买的升级（按成本从低到高排序）
+  const ids = Object.keys(area.upgrades).filter(id => id.startsWith(prefix))
+  ids.sort((a, b) => {
+    const costA = calcUpgradeCost(area.upgrades[a]).toNumber()
+    const costB = calcUpgradeCost(area.upgrades[b]).toNumber()
+    return costA - costB
+  })
+  for (const id of ids) {
+    if (canAffordUpgrade(ai, id)) buyUpgrade(ai, id)
   }
 }
 
@@ -857,11 +910,11 @@ export function loadSaveState(state) {
 }
 
 // ============ 区域布局 ============
-export const CELL = 64
+export const CELL = 100
 
 export function getAreaPos(idx) {
-  return { x: (-20 + 24 * idx) * CELL, y: 0 }
+  return { x: (-4004 + 2000 * idx), y: -2004 }
 }
 export function getAdvancedAreaPos(idx) {
-  return { x: (-20 + 24 * idx) * CELL, y: 22 * CELL }
+  return { x: (-4004 + 2000 * idx), y: -4 }
 }

@@ -15,7 +15,7 @@
     <div class="cell xp-bar-cell" style="grid-row: 1; grid-column: 5 / 9;">
       <div class="xp-top">
         <span class="xp-label">Lv.{{ a.level }}</span>
-        <span class="xp-val">{{ fmt(a.xp) }} / {{ fmt(totalXpForLevel(a.level + 1)) }}</span>
+        <span class="xp-val">{{ fmt(a.xp) }} / {{ fmt(xpForLevelUp(a.level)) }}</span>
         <span class="xp-bonus" v-if="areaIndex===0">草 +{{ (a.level*100).toFixed(0) }}%</span>
         <span class="xp-bonus" v-if="areaIndex===1">充能 +{{ (a.level*100).toFixed(0) }}%</span>
         <span class="xp-bonus" v-if="areaIndex===2">压缩 +{{ (a.level*100).toFixed(0) }}%</span>
@@ -44,7 +44,6 @@
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer1 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l1Desc }}</div>
       <div class="rb-req">需Lv.30</div>
-      <div class="rb-count">×{{ a.resetCounts.layer1 }}</div>
       <div class="rb-gain" v-if="a.level>=30">{{ previewPrestige }}</div>
     </div>
 
@@ -53,7 +52,6 @@
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer2 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l2Desc }}</div>
       <div class="rb-req">需Lv.100</div>
-      <div class="rb-count">×{{ a.resetCounts.layer2 }}</div>
       <div class="rb-gain" v-if="a.level>=100">{{ previewCrystal }}</div>
     </div>
 
@@ -62,7 +60,8 @@
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer3B1 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l3Desc }}</div>
       <div class="rb-req">需Lv.{{ reqL3B1 }}</div>
-      <div class="rb-count">×{{ a.resetCounts.layer3B1 + a.milestones.layer3B1 }}</div>
+      <div class="rb-count">次数：{{ a.resetCounts.layer3B1 + a.milestones.layer3B1 }}</div>
+      <div class="rb-gain" v-if="a.level>=reqL3B1">{{ previewGrassHop }}</div>
     </div>
 
     <!-- 重置按钮 2x2：钢化 -->
@@ -70,7 +69,7 @@
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer3B2 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l3B2Desc }}</div>
       <div class="rb-req">需Lv.270</div>
-      <div class="rb-count">×{{ a.resetCounts.layer3B2 }}</div>
+      <div class="rb-gain" v-if="a.unlockedFeatures.layer3B2 && a.level>=270">{{ previewSteel }}</div>
     </div>
 
     <!-- 资源显示 1x4 -->
@@ -118,12 +117,12 @@
           v-for="(upg, ui) in cat.upgrades"
           :key="upg.id"
           class="cell upgrade-tile"
-          :class="{ capped: isCapped(upg), affordable: canAfford(upg) }"
+          :class="{ capped: isCapped(upg), affordable: canAfford(upg), locked: isLocked(upg) }"
           :style="upgStyle(ci, ui)"
           @click="handleBuyUpgrade(upg.id)"
         >
-          <div class="tile-lv">Lv.{{ upg.level }}{{ displayCap(upg) }}</div>
-          <div class="tile-cost">{{ resEmoji(upg.buyResource) }} {{ fmt(costCache[upg.id] || '0') }}</div>
+          <div class="tile-lv">{{ isLocked(upg) ? '🔒' : 'Lv.'+upg.level }}{{ displayCap(upg) }}</div>
+          <div class="tile-cost">{{ isLocked(upg) ? '锁定' : resEmoji(upg.buyResource) + ' ' + fmt(costCache[upg.id] || '0') }}</div>
           <div class="tile-eff">{{ getEffectText(upg) }}</div>
           <div class="tile-tooltip">
             <div>{{ upg.description }}</div>
@@ -143,11 +142,11 @@ import { computed, shallowRef, watch } from 'vue'
 import {
   gameState, tick, fmt, D, D0, D1, ensureDec,
   AREA_RESOURCES_LIST, RESET_NAMES,
-  cutGrass, buyUpgrade, canAffordUpgrade,
+  cutGrass, buyUpgrade, canAffordUpgrade, getUpgradeLevel,
   doLayer1Reset, doLayer2Reset, doLayer3Branch1Reset, doLayer3Branch2Reset,
-  getUpgradeCategory, calcUpgradeCost, totalXpForLevel,
+  getUpgradeCategory, calcUpgradeCost, xpForLevelUp,
   getLayer3B1RequiredLevel, doubleXpCost,
-  milestoneDefs, isChargeMilestonesUnlocked,
+  milestoneDefs, isChargeMilestonesUnlocked, isUpgradeUnlocked,
 } from '../game/engine.js'
 
 const props = defineProps({ areaIndex: { type: Number, required: true } })
@@ -160,7 +159,7 @@ const chargeKey = computed(() => AREA_RESOURCES_LIST[props.areaIndex][6].id)
 // 所有 computeds 直接依赖 tick
 const a = computed(() => { void tick.value; return gameState.areas[props.areaIndex] })
 const grassCount = computed(() => { void tick.value; return Math.floor(gameState.areas[props.areaIndex].grassField.grass) })
-const grassDisplay = computed(() => { void tick.value; return Math.min(Math.floor(gameState.areas[props.areaIndex].grassField.grass), 50) })
+const grassDisplay = computed(() => { void tick.value; return Math.min(Math.floor(gameState.areas[props.areaIndex].grassField.grass), 100) })
 const grassPct = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.grassField.maxGrass > 0 ? Math.floor(a.grassField.grass) / a.grassField.maxGrass * 100 : 0 })
 const reqL3B1 = computed(() => getLayer3B1RequiredLevel(props.areaIndex))
 const isChargeUnlocked = computed(() => isChargeMilestonesUnlocked(props.areaIndex))
@@ -169,7 +168,7 @@ const xpPct = computed(() => {
   void tick.value
   try {
     const a = gameState.areas[props.areaIndex]
-    const n = totalXpForLevel(a.level + 1)
+    const n = xpForLevelUp(a.level)
     if (!n || n.eq(0)) return 0
     return Math.min(100, ensureDec(a.xp).div(n).mul(100).toNumber())
   } catch (e) { return 0 }
@@ -211,11 +210,16 @@ const previewPrestige = computed(() => {
   const a = gameState.areas[props.areaIndex]
   if (a.level < 30) return '需要30级'
   try {
-    let g = D(1.4142).pow(a.level / 10)
+    let g = D(1.4142).pow(a.level / 10 - 3).mul(10)
     const gk = AREA_RESOURCES_LIST[props.areaIndex][0].id
     const grass = ensureDec(a.resources[gk])
     if (grass.gt(0)) g = g.mul(D(1.1487).pow(Math.max(0, Math.log10(grass.toNumber()))))
-    return '≈' + fmt(g.floor())
+    const u116 = getUpgradeLevel(props.areaIndex, '116')
+    g = g.mul(D(1.25).pow(Math.floor(u116 / 10))).mul(D(1).add(D(u116).mul(0.25)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '155')).mul(0.1)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '163')).mul(0.2)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '172'))))
+    return '获得' + fmt(g.floor()) + '声望点'
   } catch (e) { return '' }
 })
 
@@ -224,8 +228,39 @@ const previewCrystal = computed(() => {
   const a = gameState.areas[props.areaIndex]
   if (a.level < 100) return '需要100级'
   try {
-    let g = D(1.1892).pow(a.level / 10)
-    return '≈' + fmt(g.floor())
+    let g = D(1.1892).pow(a.level / 10 - 10).mul(10)
+    const gk = AREA_RESOURCES_LIST[props.areaIndex][0].id
+    const grass = ensureDec(a.resources[gk])
+    if (grass.gt(0)) g = g.mul(D(1.0718).pow(Math.max(0, Math.log10(grass.toNumber()))))
+    const u124 = getUpgradeLevel(props.areaIndex, '124')
+    g = g.mul(D(1.25).pow(Math.floor(u124 / 10))).mul(D(1).add(D(u124).mul(0.25)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '156')).mul(0.1)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '164')).mul(0.2)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '173'))))
+    return '获得' + fmt(g.floor()) + '水晶'
+  } catch (e) { return '' }
+})
+
+const previewGrassHop = computed(() => {
+  void tick.value
+  const a = gameState.areas[props.areaIndex]
+  const req = getLayer3B1RequiredLevel(props.areaIndex)
+  if (a.level < req) return '需要' + req + '级'
+  try {
+    return '获得1草蹦次数'
+  } catch (e) { return '' }
+})
+
+const previewSteel = computed(() => {
+  void tick.value
+  const a = gameState.areas[props.areaIndex]
+  if (!a.unlockedFeatures.layer3B2 || a.level < 270) return '需要270级'
+  try {
+    let g = D1
+    for (const id of ['181', '182', '183', '184']) g = g.mul(D(2).pow(getUpgradeLevel(props.areaIndex, id)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '157')).mul(0.1)))
+    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '165')).mul(0.2)))
+    return '获得' + fmt(g.floor()) + '钢'
   } catch (e) { return '' }
 })
 
@@ -243,6 +278,7 @@ const upgradeCategories = computed(() => {
   const a = gameState.areas[props.areaIndex]
   const cats = {}
   for (const id in a.upgrades) {
+    if (!isUpgradeUnlocked(props.areaIndex, id)) continue
     const def = a.upgrades[id]
     const cat = getUpgradeCategory(id)
     if (cat.idx < 0) continue
@@ -255,6 +291,11 @@ const upgradeCategories = computed(() => {
 function canAfford(upg) {
   void tick.value
   return canAffordUpgrade(props.areaIndex, upg.id)
+}
+
+function isLocked(upg) {
+  void tick.value
+  return !isUpgradeUnlocked(props.areaIndex, upg.id)
 }
 
 function isCapped(upg) {
@@ -275,14 +316,17 @@ function getEffectText(upg) {
     const lv = upg.level
     if (lv === 0) {
       if (desc.includes('上限增加')) return '上限 +X'
-      if (desc.includes('生长速度')) return '生长 +X%'
+      if (desc.includes('生长速度')) return '长速 +X%'
       if (desc.includes('多割')) return '多割 +X'
       if (desc.includes('解锁')) return '解锁'
       if (desc.includes('自动购买')) return '自动购买'
       if (desc.includes('不再消耗')) return '免费'
-      if (desc.includes('自动割')) return '自动割'
+      if (desc.includes('自动割1')) return '自动'
+      if (desc.includes('自动割草')) return '自动 +X'
       if (desc.includes('获得数量') || desc.includes('获取数量')) return '资源 +X'
       if (desc.includes('效果')) return '效果 +X'
+      if (desc.includes('自动生成')) return `自动生成`
+      if (desc.includes('不再重置')) return `不再重置`
       return desc.length > 14 ? desc.substring(0, 12) + '...' : desc
     }
 
@@ -341,12 +385,15 @@ function getEffectText(upg) {
 
     if (desc.includes('效果')) return `效果 +${lv * 10}%`
     if (desc.includes('上限增加')) return `上限 +${lv}`
-    if (desc.includes('生长速度')) return `生长 +${lv * 10}%`
+    if (desc.includes('生长速度')) return `长速 +${lv * 10}%`
     if (desc.includes('多割')) return `多割 +${lv}`
     if (desc.includes('解锁')) return `已解锁 Lv.${lv}`
     if (desc.includes('自动购买')) return `已激活 Lv.${lv}`
     if (desc.includes('不再消耗')) return `已激活`
-    if (desc.includes('自动割')) return `间隔 ${Math.max(0, 5 - (lv - 1))}s`
+    if (desc.includes('自动割1')) return `间隔 ${Math.max(0, 5 - (lv - 1))}s`
+    if (desc.includes('自动割草')) return `自动割+${lv * 100}%`
+    if (desc.includes('自动生成')) return `自动生成`
+    if (desc.includes('不再重置')) return `不再重置`
     return desc.length > 14 ? desc.substring(0, 12) + '...' : desc
   } catch (e) {
     return upg.description ? upg.description.slice(0, 12) + '...' : '?'
@@ -355,7 +402,7 @@ function getEffectText(upg) {
 
 // ===== 新版升级布局：2行 × (n+1)列 =====
 // 左1列标签（2行），其余列每列竖排2个升级
-// 多类横向排列，满20列换行
+// 多类横向排列，满16列换行
 
 function blockStyle(ci) {
   void tick.value
@@ -363,18 +410,18 @@ function blockStyle(ci) {
   let c = 1, r = 7
   for (let i = 0; i < ci; i++) {
     const w = cats[i].upgrades.length / 2 + 1  // n+1 列
-    if (c + w > 21) { c = 1; r += 2 }
+    if (c + w > 17) { c = 1; r += 2 }
     c += w
   }
   const w = cats[ci].upgrades.length / 2 + 1
-  if (c + w > 21) { c = 1; r += 2 }
+  if (c + w > 17) { c = 1; r += 2 }
   return {
     gridRow: `${r} / ${r + 2}`,
     gridColumn: `${c} / ${c + w}`,
     display: 'grid',
-    gridTemplateColumns: `64px repeat(${Math.floor(cats[ci].upgrades.length / 2)}, 64px)`,
-    gridTemplateRows: '64px 64px',
-    gap: '2px',
+    gridTemplateColumns: `100px repeat(${Math.floor(cats[ci].upgrades.length / 2)}, 100px)`,
+    gridTemplateRows: '100px 100px',
+    gap: '0',
   }
 }
 
@@ -404,19 +451,18 @@ function resEmoji(buyRes) {
 <style scoped>
 .area-grid {
   display: grid;
-  grid-template-columns: repeat(20, 64px);
-  grid-auto-rows: 64px;
-  gap: 2px;
+  grid-template-columns: repeat(20, 100px);
+  grid-auto-rows: 100px;
+  gap: 0;
   justify-content: start;
 }
 
 .cell {
   border: 1px solid #30363d;
-  border-radius: 4px;
   background: #161b22;
   overflow: hidden;
   padding: 2px;
-  font-size: 10px;
+  font-size: 12px;
   transition: border-color 0.15s;
 }
 
@@ -433,18 +479,18 @@ function resEmoji(buyRes) {
 }
 .grass-field:hover { border-color: #4a8a4a; }
 .grass-field:active { opacity: 0.9; }
-.grass-emoji-row { font-size: 16px; line-height: 1.2; flex-wrap: wrap; max-height: 80px; overflow: hidden; }
-.grass-empty { color: #4a7a4a; font-size: 11px; }
+.grass-emoji-row { font-size: 14px; line-height: 1.2; flex-wrap: wrap; max-height: 140px; overflow: hidden; }
+.grass-empty { color: #4a7a4a; font-size: 12px; }
 .grass-count { font-size: 18px; font-weight: bold; color: #7adf7a; margin: 4px 0; }
 .grass-bar-outer { width: 80%; height: 6px; background: #1a3a1a; border-radius: 3px; margin: 4px 0; }
 .grass-bar-inner { height: 100%; background: linear-gradient(90deg, #3fb950, #7ee787); border-radius: 3px; transition: width 0.3s; }
-.grass-hint { color: #4a7a4a; font-size: 10px; }
+.grass-hint { color: #4a7a4a; font-size: 12px; }
 
 /* 经验条 */
 .xp-bar-cell {
   display: flex;
   flex-direction: column;
-  padding: 3px 6px;
+  padding: 5px 5px;
   gap: 0;
 }
 .xp-top {
@@ -452,14 +498,14 @@ function resEmoji(buyRes) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
+  gap: 5px;
+  font-size: 12px;
   line-height: 1.2;
 }
 .xp-label { font-size: 14px; font-weight: bold; color: #58a6ff; }
 .dl-label { color: #a371f7; }
-.xp-val { color: #8b949e; font-size: 9px; }
-.xp-bonus { color: #d29922; font-size: 9px; }
+.xp-val { color: #8b949e; font-size: 12px; }
+.xp-bonus { color: #d29922; font-size: 12px; }
 .xp-bottom { height: 10px; padding-bottom: 4px; }
 .xp-fill { width: 100%; height: 6px; background: #21262d; border-radius: 3px; }
 .xp-inner { height: 100%; background: linear-gradient(90deg, #3fb950, #7ee787); border-radius: 3px; transition: width 0.3s; }
@@ -484,21 +530,21 @@ function resEmoji(buyRes) {
 .reset-special { border-color: #a371f744; background: #1a1424; }
 .reset-special:hover:not(.disabled) { border-color: #a371f7; }
 .rb-name { font-size: 12px; font-weight: bold; color: #f0883e; }
-.rb-desc { font-size: 7px; color: #8b949e; white-space: pre-line; line-height: 1.2; }
-.rb-count { font-size: 9px; color: #8b949e; }
-.rb-req { font-size: 9px; color: #f0883e; }
-.rb-gain { font-size: 8px; color: #3fb950; }
+.rb-desc { font-size: 12px; color: #8b949e; white-space: pre-line; line-height: 1.2; }
+.rb-count { font-size: 12px; color: #8b949e; }
+.rb-req { font-size: 12px; color: #f0883e; }
+.rb-gain { font-size: 12px; color: #3fb950; }
 
 /* 资源 */
 .resources-display {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 5px;
   align-items: stretch;
-  padding: 3px 6px;
+  padding: 5px 5px;
   border-color: #30363d;
 }
-.res-chip { font-size: 9px; color: #c9d1d9; white-space: nowrap; line-height: 1.4; }
+.res-chip { font-size: 12px; color: #c9d1d9; white-space: nowrap; line-height: 1.4; }
 
 /* 里程碑 */
 .milestones {
@@ -523,12 +569,12 @@ function resEmoji(buyRes) {
   flex: 1;
   overflow-y: auto;
   padding: 2px 4px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 .ms-scroll::-webkit-scrollbar { width: 3px; }
 .ms-scroll::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
-.ms-section { color: #d29922; font-size: 10px; font-weight: bold; margin: 3px 0 1px; }
+.ms-section { color: #d29922; font-size: 12px; font-weight: bold; margin: 3px 0 1px; }
 .charge-ms .ms-section { color: #a371f7; }
 .ms-item { color: #484f58; padding: 1px 0; }
 .ms-item.done { color: #7ee787; }
@@ -539,25 +585,24 @@ function resEmoji(buyRes) {
   align-items: center;
   justify-content: center;
   color: #484f58;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* 升级分类块 */
 .upg-block {
   display: grid;
-  gap: 2px;
+  gap: 0;
 }
 
 /* 升级分类标签 - 占第1列，2行高 */
 .upg-cat-label {
   grid-row: 1 / 3;
   grid-column: 1;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   color: #58a6ff;
   padding: 4px;
   border: 1px solid #58a6ff44;
-  border-radius: 4px;
   background: #161b22;
   display: flex;
   align-items: center;
@@ -588,9 +633,10 @@ function resEmoji(buyRes) {
 .upgrade-tile:hover .tile-tooltip { display: block; }
 .upgrade-tile.affordable { border-color: #3fb95044; background: #1a2a1a; }
 .upgrade-tile.capped { opacity: 0.5; border-color: #d2992244; }
-.tile-lv { font-size: 10px; color: #58a6ff; font-weight: bold; }
-.tile-cost { font-size: 8px; color: #8b949e; }
-.tile-eff { font-size: 7px; color: #d29922; line-height: 1.2; text-align: center; }
+.upgrade-tile.locked { opacity: 0.4; border-color: #484f58; background: #0d1117; cursor: not-allowed; }
+.tile-lv { font-size: 12px; color: #58a6ff; font-weight: bold; }
+.tile-cost { font-size: 12px; color: #8b949e; }
+.tile-eff { font-size: 12px; color: #d29922; line-height: 1.2; text-align: center; }
 .tile-tooltip {
   display: none;
   position: absolute;
@@ -601,7 +647,7 @@ function resEmoji(buyRes) {
   border: 1px solid #58a6ff;
   border-radius: 6px;
   padding: 6px 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: #c9d1d9;
   white-space: normal;
   z-index: 50;
@@ -611,5 +657,5 @@ function resEmoji(buyRes) {
   pointer-events: none;
 }
 .tt-effect { color: #d29922; margin-top: 3px; }
-.tt-cap { color: #8b949e; margin-top: 2px; font-size: 9px; }
+.tt-cap { color: #8b949e; margin-top: 2px; font-size: 12px; }
 </style>

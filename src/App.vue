@@ -29,7 +29,6 @@
           class="area-block"
           :style="areaStyle(ai-1, false)"
         >
-          <div class="area-title">{{ areaTitle(ai-1) }}</div>
           <AreaGrid :areaIndex="ai-1" />
         </div>
 
@@ -41,7 +40,6 @@
           class="area-block adv-area"
           :style="areaStyle(bi-1, true)"
         >
-          <div class="area-title adv-title">{{ advTitle(bi-1) }}</div>
           <AdvancedGrid :areaIndex="bi-1" />
         </div>
       </div>
@@ -132,16 +130,26 @@ function onZoom(e) {
   viewTick.value++
 }
 
+function setDefaultView() {
+  gameState.viewX = window.innerWidth / 2 + 4000
+  gameState.viewY = window.innerHeight / 2 + 2000
+  gameState.viewScale = 1
+  viewTick.value++
+}
+
 let tickInterval = null
 
 onMounted(() => {
-  gameState.viewX = window.innerWidth / 2 - AREA_SIZE / 2 + 1280
-  gameState.viewY = window.innerHeight / 2 - 200
-  gameState.viewScale = 1
-
   if (hasSave()) {
     const loaded = loadFromLocal()
-    if (!loaded) localStorage.removeItem('nrgci_save')
+    if (loaded) {
+      viewTick.value++ // 触发渲染以应用保存的画布位置
+    } else {
+      localStorage.removeItem('nrgci_save')
+      setDefaultView()
+    }
+  } else {
+    setDefaultView()
   }
   tickInterval = setInterval(gameTick, gameState.tickSpeed)
   startAutoSave(30000)
@@ -189,22 +197,36 @@ body {
 
 .canvas-viewport {
   width: 100%; height: 100%; cursor: grab; overflow: hidden;
-  background: radial-gradient(circle, #111 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: #0a0a0f;
+  position: relative;
 }
 
-.canvas-content { position: relative; width: 0; height: 0; }
+.canvas-content {
+  position: relative;
+  width: 100000px;
+  height: 100000px;
+  background-color: #0a1f0a;
+}
+
+.canvas-content::before {
+  content: '';
+  position: absolute;
+  left: -50000px;
+  top: -50000px;
+  width: 100000px;
+  height: 100000px;
+  background:
+    linear-gradient(90deg, #1a3a1a 1px, transparent 1px),
+    linear-gradient(180deg, #1a3a1a 1px, transparent 1px);
+  background-size: 100px 100px;
+  background-color: #0a1f0a;
+  z-index: -1;
+}
 
 .area-block {
-  position: absolute; width: 1280px;
-  background: #161b2222; border: 2px solid #30363d;
+  position: absolute; width: 2000px;
   border-radius: 8px; padding: 4px;
   pointer-events: auto; cursor: default;
 }
-.adv-area { border-color: #a371f744; background: #1a1a2a22; }
-.area-title {
-  font-size: 14px; font-weight: bold; color: #58a6ff;
-  padding: 2px 6px; margin-bottom: 2px;
-}
-.adv-title { color: #a371f7; }
+.adv-area { border: 2px solid #58a6ff; }
 </style>
