@@ -3,10 +3,14 @@
     <!-- 草地 4x4 -->
     <div class="cell grass-field" style="grid-row: 1 / 5; grid-column: 1 / 5;" @click="handleCutGrass">
       <div class="grass-emoji-row">
-        <span v-for="i in grassDisplay" :key="i">{{ resDefs[0].emoji }}</span>
-        <span v-if="grassCount === 0" class="grass-empty">等待生长...</span>
+        <span v-for="i in cuprumDisplay" :key="'c'+i">🟠</span><br />
+        <span v-for="i in grassDisplay" :key="'g'+i">{{ resDefs[0].emoji }}</span>
+        <span v-if="grassCount === 0 && cuprumCount === 0" class="grass-empty">等待生长...</span>
       </div>
-      <div class="grass-count">{{ grassCount }} / {{ a.grassField.maxGrass }}</div>
+      <div class="grass-count">
+        <span v-if="cuprumCount > 0">🟠{{ cuprumCount }} </span>
+        🌿{{ grassCount }} / {{ fmt(a.grassField.maxGrass) }}
+      </div>
       <div class="grass-bar-outer"><div class="grass-bar-inner" :style="{width: grassPct+'%'}"></div></div>
       <div class="grass-hint">点击割草</div>
     </div>
@@ -14,12 +18,12 @@
     <!-- 等级经验条 1x4 -->
     <div class="cell xp-bar-cell" style="grid-row: 1; grid-column: 5 / 9;">
       <div class="xp-top">
-        <span class="xp-label">Lv.{{ a.level }}</span>
+        <span class="xp-label">Lv.{{ fmt(a.level) }}</span>
         <span class="xp-val">{{ fmt(a.xp) }} / {{ fmt(xpForLevelUp(a.level)) }}</span>
-        <span class="xp-bonus" v-if="areaIndex===0">草 +{{ (a.level*100).toFixed(0) }}%</span>
-        <span class="xp-bonus" v-if="areaIndex===1">充能 +{{ (a.level*100).toFixed(0) }}%</span>
-        <span class="xp-bonus" v-if="areaIndex===2">压缩 +{{ (a.level*100).toFixed(0) }}%</span>
-        <span class="xp-bonus" v-if="areaIndex===3">速度 +{{ (a.level*100).toFixed(0) }}%</span>
+        <span class="xp-bonus" v-if="areaIndex===0">草 ×{{ fmt(xpEffect(areaIndex)) }}</span>
+        <span class="xp-bonus" v-if="areaIndex===1">充能 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
+        <span class="xp-bonus" v-if="areaIndex===2">压缩 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
+        <span class="xp-bonus" v-if="areaIndex===3">速度 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
       </div>
       <div class="xp-bottom">
         <div class="xp-fill"><div class="xp-inner" :style="{width: xpPct+'%'}"></div></div>
@@ -29,9 +33,9 @@
     <!-- 二重等级经验条 1x4 -->
     <div class="cell xp-bar-cell dl-xp-cell" style="grid-row: 2; grid-column: 5 / 9;">
       <div class="xp-top">
-        <span class="xp-label dl-label">DLv.{{ a.doubleLevel }}</span>
+        <span class="xp-label dl-label">DLv.{{ fmt(a.doubleLevel) }}</span>
         <span class="xp-val">{{ fmt(a.doubleXp) }} / {{ fmt(doubleXpCost(a.doubleLevel)) }}</span>
-        <span class="xp-bonus" v-if="a.doubleUnlocked && a.doubleLevel>0">草/经验 ×10<sup>{{ a.doubleLevel }}</sup></span>
+        <span class="xp-bonus" v-if="a.doubleUnlocked">草/经验 ×{{ fmt(doubleXpEffect(areaIndex)) }}</span>
         <span class="xp-bonus" v-else>Lv.30 解锁</span>
       </div>
       <div class="xp-bottom">
@@ -40,36 +44,35 @@
     </div>
 
     <!-- 重置按钮 2x2：声望 -->
-    <div class="cell reset-btn" :class="{ disabled: a.level < 30 }" style="grid-row: 3 / 5; grid-column: 5 / 7;" @click="handleLayer1Reset">
+    <div class="cell reset-btn" :class="{ disabled: !canPrestige }" style="grid-row: 3 / 5; grid-column: 5 / 7;" @click="handleLayer1Reset">
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer1 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l1Desc }}</div>
       <div class="rb-req">需Lv.30</div>
-      <div class="rb-gain" v-if="a.level>=30">{{ previewPrestige }}</div>
+      <div class="rb-gain" v-if="canPrestige">{{ previewPrestige }}</div>
     </div>
 
     <!-- 重置按钮 2x2：结晶 -->
-    <div class="cell reset-btn" :class="{ disabled: a.level < 100 }" style="grid-row: 3 / 5; grid-column: 7 / 9;" @click="handleLayer2Reset">
+    <div class="cell reset-btn" :class="{ disabled: !canCrystal }" style="grid-row: 3 / 5; grid-column: 7 / 9;" @click="handleLayer2Reset">
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer2 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l2Desc }}</div>
       <div class="rb-req">需Lv.100</div>
-      <div class="rb-gain" v-if="a.level>=100">{{ previewCrystal }}</div>
+      <div class="rb-gain" v-if="canCrystal">{{ previewCrystal }}</div>
     </div>
 
     <!-- 重置按钮 2x2：草蹦 -->
-    <div class="cell reset-btn" :class="{ disabled: a.level < reqL3B1 }" style="grid-row: 5 / 7; grid-column: 5 / 7;" @click="handleLayer3B1Reset">
+    <div class="cell reset-btn" :class="{ disabled: !canGrassHop }" style="grid-row: 5 / 7; grid-column: 5 / 7;" @click="handleLayer3B1Reset">
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer3B1 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l3Desc }}</div>
-      <div class="rb-req">需Lv.{{ reqL3B1 }}</div>
-      <div class="rb-count">次数：{{ a.resetCounts.layer3B1 + a.milestones.layer3B1 }}</div>
-      <div class="rb-gain" v-if="a.level>=reqL3B1">{{ previewGrassHop }}</div>
+      <div class="rb-req">需Lv.{{ fmt(reqL3B1) }}</div>
+      <div class="rb-gain" v-if="canGrassHop">{{ previewGrassHop }}</div>
     </div>
 
     <!-- 重置按钮 2x2：钢化 -->
-    <div class="cell reset-btn reset-special" :class="{ disabled: !a.unlockedFeatures.layer3B2 || a.level < 270 }" style="grid-row: 5 / 7; grid-column: 7 / 9;" @click="handleLayer3B2Reset">
+    <div class="cell reset-btn reset-special" :class="{ disabled: !canSteel }" style="grid-row: 5 / 7; grid-column: 7 / 9;" @click="handleLayer3B2Reset">
       <div class="rb-name">{{ RESET_NAMES[areaIndex].layer3B2 }}</div>
       <div class="rb-desc">{{ RESET_NAMES[areaIndex].l3B2Desc }}</div>
       <div class="rb-req">需Lv.270</div>
-      <div class="rb-gain" v-if="a.unlockedFeatures.layer3B2 && a.level>=270">{{ previewSteel }}</div>
+      <div class="rb-gain" v-if="canSteel">{{ previewSteel }}</div>
     </div>
 
     <!-- 资源显示 1x4 -->
@@ -83,9 +86,9 @@
     <div class="cell milestones" style="grid-row: 1 / 4; grid-column: 9 / 12;">
       <div class="ms-header">草蹦里程碑</div>
       <div class="ms-scroll">
-        <div class="ms-section">已进行 {{ a.milestones.layer3B1 }} 次</div>
-        <div v-for="m in allGrassHopMile" :key="'gh'+m.times" class="ms-item" :class="{ done: a.milestones.layer3B1 >= m.times }">
-          <span v-if="a.milestones.layer3B1 >= m.times">✓</span><span v-else>○</span>
+        <div class="ms-section">已进行 {{ fmt(a.milestones.layer3B1) }} 次</div>
+        <div v-for="m in allGrassHopMile" :key="'gh'+m.times" class="ms-item" :class="{ done: a.milestones.layer3B1.gte(D(m.times)) }">
+          <span v-if="a.milestones.layer3B1.gte(D(m.times))">✓</span><span v-else>○</span>
           {{ m.times }}次: {{ m.desc.substring(0, 28) }}{{ m.desc.length > 28 ? '...' : '' }}
         </div>
       </div>
@@ -121,12 +124,12 @@
           :style="upgStyle(ci, ui)"
           @click="handleBuyUpgrade(upg.id)"
         >
-          <div class="tile-lv">{{ isLocked(upg) ? '🔒' : 'Lv.'+upg.level }}{{ displayCap(upg) }}</div>
-          <div class="tile-cost">{{ isLocked(upg) ? '锁定' : resEmoji(upg.buyResource) + ' ' + fmt(costCache[upg.id] || '0') }}</div>
+          <div class="tile-lv">{{ isLocked(upg) ? '🔒' : 'Lv.'+fmt(upg.level) }}{{ displayCap(upg) }}</div>
+          <div class="tile-cost">{{ isLocked(upg) ? '锁定' : resEmoji(upg.buyResource) + ' ' + (shiftHeld ? '×10: ' + fmt(totalCostCache[upg.id] || '0') : fmt(costCache[upg.id] || '0')) }}</div>
           <div class="tile-eff">{{ getEffectText(upg) }}</div>
           <div class="tile-tooltip">
             <div>{{ upg.description }}</div>
-            <div class="tt-effect" v-if="upg.level > 0">{{ getEffectText(upg) }} (当前)</div>
+            <div class="tt-effect" v-if="D(upg.level).gt(0)">{{ getEffectText(upg) }} (当前)</div>
             <div class="tt-cap" v-if="upg.cap === Infinity">无上限</div>
             <div class="tt-cap" v-else-if="upg.cap != null">上限: Lv.{{ upg.cap }}</div>
             <div class="tt-cap" v-else>无上限</div>
@@ -142,14 +145,25 @@ import { computed, shallowRef, watch } from 'vue'
 import {
   gameState, tick, fmt, D, D0, D1, ensureDec,
   AREA_RESOURCES_LIST, RESET_NAMES,
-  cutGrass, buyUpgrade, canAffordUpgrade, getUpgradeLevel,
+  cutGrass, buyUpgrade, buyUpgradeMultiple, canAffordUpgrade, getUpgradeLevel,
   doLayer1Reset, doLayer2Reset, doLayer3Branch1Reset, doLayer3Branch2Reset,
-  getUpgradeCategory, calcUpgradeCost, xpForLevelUp,
-  getLayer3B1RequiredLevel, doubleXpCost,
+  getUpgradeCategory, calcUpgradeCost, calcUpgradeTotalCost, xpForLevelUp,
+  getLayer3B1RequiredLevel, doubleXpCost, xpEffect, doubleXpEffect,
+  calcPrestigeGain, calcCrystalGain, calcGrassHopGain, calcSteelGain,
   milestoneDefs, isChargeMilestonesUnlocked, isUpgradeUnlocked,
+  isCuprumUnlocked, cuprumMultiplier,
 } from '../game/engine.js'
 
 const props = defineProps({ areaIndex: { type: Number, required: true } })
+
+// Shift 键状态跟踪
+const shiftHeld = shallowRef(false)
+function onKeyDown(e) { if (e.key === 'Shift') shiftHeld.value = true }
+function onKeyUp(e) { if (e.key === 'Shift') shiftHeld.value = false }
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
+}
 
 // 游戏状态 getter
 function getA() { void tick.value; return gameState.areas[props.areaIndex] }
@@ -158,11 +172,20 @@ const chargeKey = computed(() => AREA_RESOURCES_LIST[props.areaIndex][6].id)
 
 // 所有 computeds 直接依赖 tick
 const a = computed(() => { void tick.value; return gameState.areas[props.areaIndex] })
-const grassCount = computed(() => { void tick.value; return Math.floor(gameState.areas[props.areaIndex].grassField.grass) })
-const grassDisplay = computed(() => { void tick.value; return Math.min(Math.floor(gameState.areas[props.areaIndex].grassField.grass), 100) })
-const grassPct = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.grassField.maxGrass > 0 ? Math.floor(a.grassField.grass) / a.grassField.maxGrass * 100 : 0 })
+const grassCount = computed(() => { void tick.value; return gameState.areas[props.areaIndex].grassField.grass.floor().toNumber() })
+const grassDisplay = computed(() => { void tick.value; return Math.min(gameState.areas[props.areaIndex].grassField.grass.floor().toNumber(), 100) })
+const grassPct = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.grassField.maxGrass.gt(D0) ? a.grassField.grass.div(a.grassField.maxGrass).mul(100).toNumber() : 0 })
+const cuprumCount = computed(() => { void tick.value; return isCuprumUnlocked(props.areaIndex) ? gameState.areas[props.areaIndex].grassField.cuprum.floor().toNumber() : 0 })
+const cuprumDisplay = computed(() => { void tick.value; return Math.min(cuprumCount.value, 20) })
 const reqL3B1 = computed(() => getLayer3B1RequiredLevel(props.areaIndex))
-const isChargeUnlocked = computed(() => isChargeMilestonesUnlocked(props.areaIndex))
+const isChargeUnlocked = computed(() => { void tick.value; return isChargeMilestonesUnlocked(props.areaIndex) })
+
+// Decimal 比较的 computed 布尔值（模板中无法直接使用 .lt/.gte 等方法）
+const canPrestige = computed(() => { void tick.value; return gameState.areas[props.areaIndex].level.gte(D(30)) })
+const canCrystal = computed(() => { void tick.value; return gameState.areas[props.areaIndex].level.gte(D(100)) })
+const canGrassHop = computed(() => { void tick.value; return gameState.areas[props.areaIndex].level.gte(reqL3B1.value) })
+const canSteel = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.unlockedFeatures.layer3B2 && a.level.gte(D(270)) })
+const l3B1TotalCount = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.resetCounts.layer3B1.add(a.milestones.layer3B1).toNumber() })
 
 const xpPct = computed(() => {
   void tick.value
@@ -208,36 +231,18 @@ function fmtNum(n) {
 const previewPrestige = computed(() => {
   void tick.value
   const a = gameState.areas[props.areaIndex]
-  if (a.level < 30) return '需要30级'
+  if (a.level.lt(D(30))) return '需要30级'
   try {
-    let g = D(1.4142).pow(a.level / 10 - 3).mul(10)
-    const gk = AREA_RESOURCES_LIST[props.areaIndex][0].id
-    const grass = ensureDec(a.resources[gk])
-    if (grass.gt(0)) g = g.mul(D(1.1487).pow(Math.max(0, Math.log10(grass.toNumber()))))
-    const u116 = getUpgradeLevel(props.areaIndex, '116')
-    g = g.mul(D(1.25).pow(Math.floor(u116 / 10))).mul(D(1).add(D(u116).mul(0.25)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '155')).mul(0.1)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '163')).mul(0.2)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '172'))))
-    return '获得' + fmt(g.floor()) + '声望点'
+    return '获得' + fmt(calcPrestigeGain(props.areaIndex)) + '声望点'
   } catch (e) { return '' }
 })
 
 const previewCrystal = computed(() => {
   void tick.value
   const a = gameState.areas[props.areaIndex]
-  if (a.level < 100) return '需要100级'
+  if (a.level.lt(D(100))) return '需要100级'
   try {
-    let g = D(1.1892).pow(a.level / 10 - 10).mul(10)
-    const gk = AREA_RESOURCES_LIST[props.areaIndex][0].id
-    const grass = ensureDec(a.resources[gk])
-    if (grass.gt(0)) g = g.mul(D(1.0718).pow(Math.max(0, Math.log10(grass.toNumber()))))
-    const u124 = getUpgradeLevel(props.areaIndex, '124')
-    g = g.mul(D(1.25).pow(Math.floor(u124 / 10))).mul(D(1).add(D(u124).mul(0.25)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '156')).mul(0.1)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '164')).mul(0.2)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '173'))))
-    return '获得' + fmt(g.floor()) + '水晶'
+    return '获得' + fmt(calcCrystalGain(props.areaIndex)) + '水晶'
   } catch (e) { return '' }
 })
 
@@ -245,28 +250,31 @@ const previewGrassHop = computed(() => {
   void tick.value
   const a = gameState.areas[props.areaIndex]
   const req = getLayer3B1RequiredLevel(props.areaIndex)
-  if (a.level < req) return '需要' + req + '级'
+  if (a.level.lt(req)) return ''
   try {
-    return '获得1草蹦次数'
+    return '草蹦次数+1'
   } catch (e) { return '' }
 })
 
 const previewSteel = computed(() => {
   void tick.value
   const a = gameState.areas[props.areaIndex]
-  if (!a.unlockedFeatures.layer3B2 || a.level < 270) return '需要270级'
+  if (!a.unlockedFeatures.layer3B2 || a.level.lt(D(270))) return '需要270级'
   try {
-    let g = D1
-    for (const id of ['181', '182', '183', '184']) g = g.mul(D(2).pow(getUpgradeLevel(props.areaIndex, id)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '157')).mul(0.1)))
-    g = g.mul(D(1).add(D(getUpgradeLevel(props.areaIndex, '165')).mul(0.2)))
-    return '获得' + fmt(g.floor()) + '钢'
+    return '获得' + fmt(calcSteelGain(props.areaIndex)) + '钢'
   } catch (e) { return '' }
 })
 
 // 事件处理器
 function handleCutGrass() { cutGrass(props.areaIndex); tick.value++ }
-function handleBuyUpgrade(id) { buyUpgrade(props.areaIndex, id); tick.value++ }
+function handleBuyUpgrade(id) {
+  if (shiftHeld.value) {
+    buyUpgradeMultiple(props.areaIndex, id, 10)
+  } else {
+    buyUpgrade(props.areaIndex, id)
+  }
+  tick.value++
+}
 function handleLayer1Reset() { doLayer1Reset(props.areaIndex); tick.value++ }
 function handleLayer2Reset() { doLayer2Reset(props.areaIndex); tick.value++ }
 function handleLayer3B1Reset() { doLayer3Branch1Reset(props.areaIndex); tick.value++ }
@@ -300,7 +308,7 @@ function isLocked(upg) {
 
 function isCapped(upg) {
   const cap = (upg.cap === null || upg.cap === undefined) ? Infinity : upg.cap
-  return upg.level >= cap
+  return D(upg.level).gte(D(cap))
 }
 
 function displayCap(upg) {
@@ -312,89 +320,57 @@ function displayCap(upg) {
 // 解析升级效果文本（含每10级翻倍逻辑）
 function getEffectText(upg) {
   try {
-    const desc = upg.description
-    const lv = upg.level
-    if (lv === 0) {
-      if (desc.includes('上限增加')) return '上限 +X'
-      if (desc.includes('生长速度')) return '长速 +X%'
-      if (desc.includes('多割')) return '多割 +X'
-      if (desc.includes('解锁')) return '解锁'
-      if (desc.includes('自动购买')) return '自动购买'
-      if (desc.includes('不再消耗')) return '免费'
-      if (desc.includes('自动割1')) return '自动'
-      if (desc.includes('自动割草')) return '自动 +X'
-      if (desc.includes('获得数量') || desc.includes('获取数量')) return '资源 +X'
-      if (desc.includes('效果')) return '效果 +X'
-      if (desc.includes('自动生成')) return `自动生成`
-      if (desc.includes('不再重置')) return `不再重置`
-      return desc.length > 14 ? desc.substring(0, 12) + '...' : desc
+    const lv = D(upg.level).toNumber()
+    const boost = upg.boostResource || ''
+    const add = upg.addition || 0
+    const multPer10 = upg.multPer10 || 1
+
+    // 无加成资源的升级
+    if (!boost) {
+      if (lv === 0) {
+        if (upg.description.includes('解锁')) return '解锁'
+        if (upg.description.includes('自动购买')) return '自动购买'
+        if (upg.description.includes('不再消耗')) return '免费'
+        if (upg.description.includes('自动割1')) return '自动'
+        if (upg.description.includes('自动割草')) return '自动割草'
+        if (upg.description.includes('自动生成')) return '自动生成'
+        if (upg.description.includes('不再重置')) return '不再重置'
+        return upg.description.length > 14 ? upg.description.substring(0, 12) + '...' : upg.description
+      }
+      if (upg.description.includes('效果')) return `效果 +${lv * 10}%`
+      if (upg.description.includes('解锁')) return `已解锁 Lv.${lv}`
+      if (upg.description.includes('自动购买')) return `已激活`
+      if (upg.description.includes('不再消耗')) return `已激活`
+      if (upg.description.includes('自动割1')) return `间隔 ${Math.max(0, 5 - (lv - 1))}s`
+      if (upg.description.includes('自动割草')) return `已激活 Lv.${lv}`
+      if (upg.description.includes('自动生成')) return `已激活`
+      if (upg.description.includes('不再重置')) return `已激活`
+      return upg.description.length > 14 ? upg.description.substring(0, 12) + '...' : upg.description
     }
 
-    const mRes = desc.match(/每级使(\S+?)(?:的)?(?:获得|获取)数量/)
-    const mPer = desc.match(/\+\d+%/g)
-    const mPer10 = desc.match(/每(\d+)级使(\S+?)(?:的)?(?:获得|获取)数量×([\d.]+)/)
+    // 有加成资源的升级 - 使用新公式
+    // 公式: ×(1+等级×addition)×multPer10^floor(等级/10)
+    const addMult = 1 + lv * add
+    const per10Mult = Math.pow(multPer10, Math.floor(lv / 10))
+    const totalMult = addMult * per10Mult
 
-    if (mRes) {
-      const resName = mRes[1]
-      let mult = 1
-      if (mPer) {
-        const pct = parseFloat(String(mPer[0]).replace(/[^\d.]/g, ''))
-        if (!isNaN(pct)) mult = 1 + pct / 100 * lv
-      }
-      if (mPer10) {
-        const perN = parseInt(mPer10[1])
-        const mul10 = parseFloat(mPer10[3])
-        if (!isNaN(mul10)) mult *= Math.pow(mul10, Math.floor(lv / perN))
-      }
-      const result = mult.toFixed(2)
-      return isNaN(+result) || result === 'NaN' ? desc.slice(0, 14) : `${resName} ×${result}`
-    }
+    // 获取资源名称显示
+    let resName = boost
+    if (boost === 'grass') resName = '草'
+    else if (boost === 'xp') resName = '经验'
+    else if (boost === 'doubleXp') resName = '二重'
+    else if (boost === 'prestige') resName = '声望'
+    else if (boost === 'crystal') resName = '水晶'
+    else if (boost === 'steel') resName = '钢'
+    else if (boost === 'charge') resName = '充能'
+    else if (boost === 'cut_amount') resName = '多割'
+    else if (boost === 'A1_grass_cap') resName = '上限'
+    else if (boost === 'A1_growth_speed') resName = '长速'
 
-    const mSimple = desc.match(/^(\S+?)(?:的)?(?:获得|获取)数量\+(\d+)%/)
-    if (mSimple) {
-      const resName = mSimple[1]
-      const pct = parseFloat(mSimple[2])
-      if (!isNaN(pct)) {
-        let mult = 1 + pct / 100 * lv
-        // 处理每N级×W额外乘数
-        if (mPer10) {
-          const perN = parseInt(mPer10[1])
-          const mul10 = parseFloat(mPer10[3])
-          if (!isNaN(perN) && !isNaN(mul10)) {
-            mult *= Math.pow(mul10, Math.floor(lv / perN))
-          }
-        }
-        const result = mult.toFixed(2)
-        return isNaN(+result) || result === 'NaN' ? desc.slice(0, 14) : `${resName} ×${result}`
-      }
-    }
+    if (lv === 0) return `${resName} ×?`
 
-    const mCharge = desc.match(/(\S+?)获取\+(\d+)%/)
-    if (mCharge) {
-      const resName = mCharge[1]
-      const pct = parseFloat(mCharge[2])
-      let mult = !isNaN(pct) ? 1 + pct / 100 * lv : 1
-      if (mPer10) {
-        const perN = parseInt(mPer10[1])
-        const mul10 = parseFloat(mPer10[3])
-        if (!isNaN(mul10)) mult *= Math.pow(mul10, Math.floor(lv / perN))
-      }
-      const result = mult.toFixed(2)
-      return isNaN(+result) || result === 'NaN' ? desc.slice(0, 14) : `${resName} ×${result}`
-    }
-
-    if (desc.includes('效果')) return `效果 +${lv * 10}%`
-    if (desc.includes('上限增加')) return `上限 +${lv}`
-    if (desc.includes('生长速度')) return `长速 +${lv * 10}%`
-    if (desc.includes('多割')) return `多割 +${lv}`
-    if (desc.includes('解锁')) return `已解锁 Lv.${lv}`
-    if (desc.includes('自动购买')) return `已激活 Lv.${lv}`
-    if (desc.includes('不再消耗')) return `已激活`
-    if (desc.includes('自动割1')) return `间隔 ${Math.max(0, 5 - (lv - 1))}s`
-    if (desc.includes('自动割草')) return `自动割+${lv * 100}%`
-    if (desc.includes('自动生成')) return `自动生成`
-    if (desc.includes('不再重置')) return `不再重置`
-    return desc.length > 14 ? desc.substring(0, 12) + '...' : desc
+    const result = totalMult.toFixed(2)
+    return isNaN(+result) || result === 'NaN' ? `${resName} ×?` : `${resName} ×${result}`
   } catch (e) {
     return upg.description ? upg.description.slice(0, 12) + '...' : '?'
   }
@@ -433,13 +409,19 @@ function upgStyle(ci, ui) {
 }
 
 const costCache = shallowRef({})
+const totalCostCache = shallowRef({})
 watch(tick, () => {
   const c = {}
+  const tc = {}
   const a = gameState.areas[props.areaIndex]
   for (const id in a.upgrades) {
-    try { c[id] = calcUpgradeCost(a.upgrades[id]) } catch (e) { c[id] = D0 }
+    try {
+      c[id] = calcUpgradeCost(a.upgrades[id])
+      tc[id] = calcUpgradeTotalCost(a.upgrades[id], 10)
+    } catch (e) { c[id] = D0; tc[id] = D0 }
   }
   costCache.value = c
+  totalCostCache.value = tc
 }, { immediate: true })
 
 function resEmoji(buyRes) {
@@ -462,7 +444,7 @@ function resEmoji(buyRes) {
   background: #161b22;
   overflow: hidden;
   padding: 2px;
-  font-size: 12px;
+  font-size: 14px;
   transition: border-color 0.15s;
 }
 
@@ -480,18 +462,18 @@ function resEmoji(buyRes) {
 .grass-field:hover { border-color: #4a8a4a; }
 .grass-field:active { opacity: 0.9; }
 .grass-emoji-row { font-size: 14px; line-height: 1.2; flex-wrap: wrap; max-height: 140px; overflow: hidden; }
-.grass-empty { color: #4a7a4a; font-size: 12px; }
+.grass-empty { color: #4a7a4a; font-size: 14px; }
 .grass-count { font-size: 18px; font-weight: bold; color: #7adf7a; margin: 4px 0; }
 .grass-bar-outer { width: 80%; height: 6px; background: #1a3a1a; border-radius: 3px; margin: 4px 0; }
 .grass-bar-inner { height: 100%; background: linear-gradient(90deg, #3fb950, #7ee787); border-radius: 3px; transition: width 0.3s; }
-.grass-hint { color: #4a7a4a; font-size: 12px; }
+.grass-hint { color: #4a7a4a; font-size: 14px; }
 
 /* 经验条 */
 .xp-bar-cell {
   display: flex;
   flex-direction: column;
-  padding: 5px 5px;
-  gap: 0;
+  padding: 10px 10px;
+  gap: 10px;
 }
 .xp-top {
   flex: 1;
@@ -499,16 +481,16 @@ function resEmoji(buyRes) {
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.2;
 }
-.xp-label { font-size: 14px; font-weight: bold; color: #58a6ff; }
+.xp-label { font-size: 20px; font-weight: bold; color: #58a6ff; }
 .dl-label { color: #a371f7; }
-.xp-val { color: #8b949e; font-size: 12px; }
-.xp-bonus { color: #d29922; font-size: 12px; }
+.xp-val { color: #8b949e; font-size: 14px; }
+.xp-bonus { color: #d29922; font-size: 14px; }
 .xp-bottom { height: 10px; padding-bottom: 4px; }
-.xp-fill { width: 100%; height: 6px; background: #21262d; border-radius: 3px; }
-.xp-inner { height: 100%; background: linear-gradient(90deg, #3fb950, #7ee787); border-radius: 3px; transition: width 0.3s; }
+.xp-fill { width: 100%; height: 10px; background: #21262d; border-radius: 2px; }
+.xp-inner { height: 100%; background: linear-gradient(90deg, #58a6ff, #83d8ff); border-radius: 2px; transition: width 0.2s; }
 .dl-inner { background: linear-gradient(90deg, #a371f7, #d2a8ff); }
 .dl-xp-cell { border-color: #a371f744; }
 
@@ -529,11 +511,11 @@ function resEmoji(buyRes) {
 .reset-btn.disabled { opacity: 0.45; cursor: not-allowed; }
 .reset-special { border-color: #a371f744; background: #1a1424; }
 .reset-special:hover:not(.disabled) { border-color: #a371f7; }
-.rb-name { font-size: 12px; font-weight: bold; color: #f0883e; }
-.rb-desc { font-size: 12px; color: #8b949e; white-space: pre-line; line-height: 1.2; }
-.rb-count { font-size: 12px; color: #8b949e; }
-.rb-req { font-size: 12px; color: #f0883e; }
-.rb-gain { font-size: 12px; color: #3fb950; }
+.rb-name { font-size: 14px; font-weight: bold; color: #f0883e; }
+.rb-desc { font-size: 14px; color: #8b949e; white-space: pre-line; line-height: 1.2; }
+.rb-count { font-size: 14px; color: #8b949e; }
+.rb-req { font-size: 14px; color: #f0883e; }
+.rb-gain { font-size: 14px; color: #3fb950; }
 
 /* 资源 */
 .resources-display {
@@ -544,7 +526,7 @@ function resEmoji(buyRes) {
   padding: 5px 5px;
   border-color: #30363d;
 }
-.res-chip { font-size: 12px; color: #c9d1d9; white-space: nowrap; line-height: 1.4; }
+.res-chip { font-size: 14px; color: #c9d1d9; white-space: nowrap; line-height: 1.4; }
 
 /* 里程碑 */
 .milestones {
@@ -557,7 +539,7 @@ function resEmoji(buyRes) {
 .charge-ms { border-color: #a371f744; background: #1a1424; }
 .locked-ms { border-color: #30363d; background: #161b22; }
 .ms-header {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: bold;
   color: #d29922;
   padding: 4px 6px;
@@ -569,12 +551,12 @@ function resEmoji(buyRes) {
   flex: 1;
   overflow-y: auto;
   padding: 2px 4px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
 }
 .ms-scroll::-webkit-scrollbar { width: 3px; }
 .ms-scroll::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
-.ms-section { color: #d29922; font-size: 12px; font-weight: bold; margin: 3px 0 1px; }
+.ms-section { color: #d29922; font-size: 14px; font-weight: bold; margin: 3px 0 1px; }
 .charge-ms .ms-section { color: #a371f7; }
 .ms-item { color: #484f58; padding: 1px 0; }
 .ms-item.done { color: #7ee787; }
@@ -585,7 +567,7 @@ function resEmoji(buyRes) {
   align-items: center;
   justify-content: center;
   color: #484f58;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* 升级分类块 */
@@ -598,7 +580,7 @@ function resEmoji(buyRes) {
 .upg-cat-label {
   grid-row: 1 / 3;
   grid-column: 1;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: bold;
   color: #58a6ff;
   padding: 4px;
@@ -634,9 +616,9 @@ function resEmoji(buyRes) {
 .upgrade-tile.affordable { border-color: #3fb95044; background: #1a2a1a; }
 .upgrade-tile.capped { opacity: 0.5; border-color: #d2992244; }
 .upgrade-tile.locked { opacity: 0.4; border-color: #484f58; background: #0d1117; cursor: not-allowed; }
-.tile-lv { font-size: 12px; color: #58a6ff; font-weight: bold; }
-.tile-cost { font-size: 12px; color: #8b949e; }
-.tile-eff { font-size: 12px; color: #d29922; line-height: 1.2; text-align: center; }
+.tile-lv { font-size: 14px; color: #58a6ff; font-weight: bold; }
+.tile-cost { font-size: 14px; color: #8b949e; }
+.tile-eff { font-size: 14px; color: #d29922; line-height: 1.2; text-align: center; }
 .tile-tooltip {
   display: none;
   position: absolute;
@@ -647,7 +629,7 @@ function resEmoji(buyRes) {
   border: 1px solid #58a6ff;
   border-radius: 6px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: #c9d1d9;
   white-space: normal;
   z-index: 50;
@@ -657,5 +639,5 @@ function resEmoji(buyRes) {
   pointer-events: none;
 }
 .tt-effect { color: #d29922; margin-top: 3px; }
-.tt-cap { color: #8b949e; margin-top: 2px; font-size: 12px; }
+.tt-cap { color: #8b949e; margin-top: 2px; font-size: 14px; }
 </style>

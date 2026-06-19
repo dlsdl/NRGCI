@@ -3,6 +3,7 @@
     <!-- 固定按钮 -->
     <div class="fixed-buttons">
       <div class="canvas-info">{{ canvasInfoText }}</div>
+      <button v-if="isDev" class="fixed-btn debug-btn" @click="showDebug = true">🔧 调试</button>
       <button class="fixed-btn" @click="showTeleport = true">🗺️ 传送</button>
       <button class="fixed-btn" @click="showSaveWindow = true">💾 存档</button>
     </div>
@@ -14,7 +15,7 @@
       @mousemove="onDrag"
       @mouseup="endDrag"
       @mouseleave="endDrag"
-      @wheel.prevent="onZoom"
+      @wheel="onZoom"
     >
       <div
         ref="canvasEl"
@@ -50,6 +51,9 @@
 
     <!-- 存档弹窗 -->
     <SaveWindow v-if="showSaveWindow" @close="showSaveWindow = false" />
+
+    <!-- 调试弹窗（仅开发环境） -->
+    <DebugModal v-if="showDebug" @close="showDebug = false" />
   </div>
 </template>
 
@@ -61,9 +65,12 @@ import AreaGrid from './components/AreaGrid.vue'
 import AdvancedGrid from './components/AdvancedGrid.vue'
 import TeleportModal from './components/TeleportModal.vue'
 import SaveWindow from './components/SaveWindow.vue'
+import DebugModal from './components/DebugModal.vue'
 
 const canvasEl = ref(null)
 const AREA_SIZE = CELL * 20
+const isDev = import.meta.env.DEV
+const showDebug = ref(false)
 
 const canvasStyle = computed(() => {
   void viewTick.value
@@ -125,8 +132,28 @@ function endDrag() {
 }
 
 function onZoom(e) {
+  // 如果鼠标在里程碑等可滚动元素上，不缩放，允许正常滚动
+  if (e.target.closest('.milestones, .ms-scroll, .debug-resources')) return
+
+  e.preventDefault()
+
+  // 以屏幕中点为中心缩放
+  const oldScale = gameState.viewScale
   const delta = e.deltaY > 0 ? -0.1 : 0.1
-  gameState.viewScale = Math.max(0.2, Math.min(3, gameState.viewScale + delta))
+  const newScale = Math.max(0.2, Math.min(3, oldScale + delta))
+  if (newScale === oldScale) return
+
+  const cx = window.innerWidth / 2
+  const cy = window.innerHeight / 2
+
+  // 缩放前屏幕中点对应的内容坐标
+  const contentX = (cx - gameState.viewX) / oldScale
+  const contentY = (cy - gameState.viewY) / oldScale
+
+  // 缩放后保持屏幕中点对应同一内容坐标
+  gameState.viewX = cx - contentX * newScale
+  gameState.viewY = cy - contentY * newScale
+  gameState.viewScale = newScale
   viewTick.value++
 }
 
@@ -167,7 +194,7 @@ body {
   background: #0a0a0f;
   color: #c9d1d9;
   font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   overflow: hidden;
   user-select: none;
 }
@@ -194,6 +221,8 @@ body {
   cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.15s;
 }
 .fixed-btn:hover { background: #1c2533; }
+.fixed-btn.debug-btn { border-color: #f0883e; color: #f0883e; }
+.fixed-btn.debug-btn:hover { background: #2a2018; }
 
 .canvas-viewport {
   width: 100%; height: 100%; cursor: grab; overflow: hidden;

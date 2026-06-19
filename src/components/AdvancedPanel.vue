@@ -130,7 +130,7 @@ function doAdvReset() {
   border-radius: 12px;
 }
 .adv-header h2 { font-size: 20px; color: #a371f7; margin-bottom: 4px; }
-.adv-layer { font-size: 12px; color: #8b949e; }
+.adv-layer { font-size: 14px; color: #8b949e; }
 
 .adv-resource {
   display: flex;
@@ -168,7 +168,7 @@ function doAdvReset() {
   border-radius: 8px;
   background: linear-gradient(180deg, #2a1a4a 0%, #1a0a2a 100%);
   color: #a371f7;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
@@ -197,8 +197,8 @@ function doAdvReset() {
   gap: 4px;
 }
 .upg-header { display: flex; align-items: center; gap: 6px; }
-.upg-name { flex: 1; font-size: 12px; }
-.upg-level { color: #a371f7; font-size: 12px; font-weight: bold; }
+.upg-name { flex: 1; font-size: 14px; }
+.upg-level { color: #a371f7; font-size: 14px; font-weight: bold; }
 .upg-cost { font-size: 11px; color: #8b949e; }
 
 .btn-buy {
@@ -227,7 +227,7 @@ function doAdvReset() {
   border: 1px solid #f0883e44;
   border-radius: 6px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: #f0883e;
 }
 </style>

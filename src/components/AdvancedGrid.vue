@@ -54,7 +54,7 @@ function doAdvReset() { doAdvancedReset(props.areaIndex) }
 .adv-emoji { font-size: 36px; }
 .adv-name { font-size: 20px; color: #a371f7; font-weight: bold; }
 .adv-value { font-size: 22px; color: #c9d1d9; }
-.adv-count { font-size: 12px; color: #8b949e; }
+.adv-count { font-size: 14px; color: #8b949e; }
 
 .adv-reset-info {
   font-size: 13px;
@@ -67,7 +67,7 @@ function doAdvReset() { doAdvancedReset(props.areaIndex) }
   border-radius: 10px;
   background: linear-gradient(180deg, #2a1a4a, #1a0a2a);
   color: #a371f7;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
