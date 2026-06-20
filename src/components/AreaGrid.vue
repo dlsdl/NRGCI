@@ -9,7 +9,7 @@
       </div>
       <div class="grass-count">
         <span v-if="cuprumCount > 0">🟠{{ cuprumCount }} </span>
-        🌿{{ grassCount }} / {{ fmt(a.grassField.maxGrass) }}
+        {{ resDefs[0].emoji }}{{ grassCount }} / {{ fmt(a.grassField.maxGrass) }}
       </div>
       <div class="grass-bar-outer"><div class="grass-bar-inner" :style="{width: grassPct+'%'}"></div></div>
       <div class="grass-hint">点击割草</div>
@@ -18,10 +18,10 @@
     <!-- 等级经验条 1x4 -->
     <div class="cell xp-bar-cell" style="grid-row: 1; grid-column: 5 / 9;">
       <div class="xp-top">
-        <span class="xp-label">Lv.{{ fmt(a.level) }}</span>
+        <span class="xp-label">{{ areaIndex===1 ? 'ALv.' : 'Lv.' }}{{ fmt(a.level) }}</span>
         <span class="xp-val">{{ fmt(a.xp) }} / {{ fmt(xpForLevelUp(a.level)) }}</span>
         <span class="xp-bonus" v-if="areaIndex===0">草 ×{{ fmt(xpEffect(areaIndex)) }}</span>
-        <span class="xp-bonus" v-if="areaIndex===1">充能 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
+        <span class="xp-bonus" v-if="areaIndex===1">充能 ×{{ fmt(D(1).add(a.level.div(2)).mul(D(1.05).pow(a.level))) }}</span>
         <span class="xp-bonus" v-if="areaIndex===2">压缩 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
         <span class="xp-bonus" v-if="areaIndex===3">速度 +{{ a.level.mul(100).toNumber().toFixed(0) }}%</span>
       </div>
@@ -31,7 +31,7 @@
     </div>
 
     <!-- 二重等级经验条 1x4 -->
-    <div class="cell xp-bar-cell dl-xp-cell" style="grid-row: 2; grid-column: 5 / 9;">
+    <div class="cell xp-bar-cell dl-xp-cell" v-if="areaIndex===0" style="grid-row: 2; grid-column: 5 / 9;">
       <div class="xp-top">
         <span class="xp-label dl-label">DLv.{{ fmt(a.doubleLevel) }}</span>
         <span class="xp-val">{{ fmt(a.doubleXp) }} / {{ fmt(doubleXpCost(a.doubleLevel)) }}</span>
@@ -41,6 +41,9 @@
       <div class="xp-bottom">
         <div class="xp-fill"><div class="xp-inner dl-inner" :style="{width: dlXpPct+'%'}"></div></div>
       </div>
+    </div>
+    <!-- A2 DLv留空 -->
+    <div class="cell xp-bar-cell dl-xp-cell" v-else style="grid-row: 2; grid-column: 5 / 9;">
     </div>
 
     <!-- 重置按钮 2x2：声望 -->
@@ -98,10 +101,11 @@
     <div class="cell milestones charge-ms" v-if="isChargeUnlocked" style="grid-row: 4 / 7; grid-column: 9 / 12;">
       <div class="ms-header">充能里程碑</div>
       <div class="ms-scroll">
-        <div class="ms-section">当前: {{ fmt(a.resources[chargeKey]) }}</div>
+        <div class="ms-section">当前: {{ fmt(a.resources[chargeKey]) }} | +{{ fmt(chargePerSec) }}/秒</div>
         <div v-for="m in allChargeMile" :key="'ch'+m.charge" class="ms-item" :class="{ done: chargeMet(m) }">
           <span v-if="chargeMet(m)">✓</span><span v-else>○</span>
-          {{ fmtNum(m.charge) }}: {{ m.desc.substring(0, 28) }}{{ m.desc.length > 28 ? '...' : '' }}
+          {{ fmtNum(m.charge) }}: {{ m.desc.substring(0, 22) }}{{ m.desc.length > 22 ? '...' : '' }}
+          <span v-if="chargeMet(m)" class="ms-bonus">×{{ fmt(getChargeMilestoneEffect(props.areaIndex, m).multiplier) }}</span>
         </div>
       </div>
     </div>
@@ -110,6 +114,32 @@
     <div class="cell milestones locked-ms" v-else style="grid-row: 4 / 7; grid-column: 9 / 12;">
       <div class="ms-header">充能里程碑</div>
       <div class="ms-locked">🔒 购买升级后解锁</div>
+    </div>
+
+    <!-- 火箭燃料 3x3 (购买146后解锁，仅A1) -->
+    <div class="cell milestones fuel-panel" v-if="areaIndex===0 && fuelUnlocked" style="grid-row: 1 / 4; grid-column: 12 / 15;">
+      <div class="ms-header">🚀 火箭燃料</div>
+      <div class="ms-scroll">
+        <div class="ms-section">当前: {{ fmt(a.resources['fuel']) }}</div>
+        <div class="ms-section">合成: ⚡1e6 + 🛢️1e3 → 🚀×1</div>
+        <div class="synth-btns">
+          <button class="synth-btn" :disabled="maxFuel.lte(D0)" @click="handleSynthFuel">合成1个</button>
+          <button class="synth-btn" :disabled="maxFuel.lte(D0)" @click="handleSynthFuelMax">最大×{{ fmt(maxFuel) }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 火箭部件 3x3 (购买147后解锁，仅A1) -->
+    <div class="cell milestones part-panel" v-if="areaIndex===0 && partUnlocked" style="grid-row: 4 / 7; grid-column: 12 / 15;">
+      <div class="ms-header">🔧 火箭部件</div>
+      <div class="ms-scroll">
+        <div class="ms-section">当前: {{ fmt(a.resources['part']) }}</div>
+        <div class="ms-section">合成: 🚀1e3 + 🔩1e6 → 🔧×1</div>
+        <div class="synth-btns">
+          <button class="synth-btn" :disabled="maxPart.lte(D0)" @click="handleSynthPart">合成1个</button>
+          <button class="synth-btn" :disabled="maxPart.lte(D0)" @click="handleSynthPartMax">最大×{{ fmt(maxPart) }}</button>
+        </div>
+      </div>
     </div>
 
     <!-- 升级分类块 (从第7行开始) -->
@@ -149,9 +179,11 @@ import {
   doLayer1Reset, doLayer2Reset, doLayer3Branch1Reset, doLayer3Branch2Reset,
   getUpgradeCategory, calcUpgradeCost, calcUpgradeTotalCost, xpForLevelUp,
   getLayer3B1RequiredLevel, doubleXpCost, xpEffect, doubleXpEffect,
-  calcPrestigeGain, calcCrystalGain, calcGrassHopGain, calcSteelGain,
+  calcPrestigeGain, calcCrystalGain, calcSteelGain,
   milestoneDefs, isChargeMilestonesUnlocked, isUpgradeUnlocked,
   isCuprumUnlocked, cuprumMultiplier,
+  getChargeMilestoneEffect, calcChargePerSec,
+  isFuelUnlocked, isPartUnlocked, synthesizeFuel, synthesizePart, maxFuelSynth, maxPartSynth,
 } from '../game/engine.js'
 
 const props = defineProps({ areaIndex: { type: Number, required: true } })
@@ -179,6 +211,11 @@ const cuprumCount = computed(() => { void tick.value; return isCuprumUnlocked(pr
 const cuprumDisplay = computed(() => { void tick.value; return Math.min(cuprumCount.value, 20) })
 const reqL3B1 = computed(() => getLayer3B1RequiredLevel(props.areaIndex))
 const isChargeUnlocked = computed(() => { void tick.value; return isChargeMilestonesUnlocked(props.areaIndex) })
+const chargePerSec = computed(() => { void tick.value; return calcChargePerSec(props.areaIndex) })
+const fuelUnlocked = computed(() => { void tick.value; return isFuelUnlocked(props.areaIndex) })
+const partUnlocked = computed(() => { void tick.value; return isPartUnlocked(props.areaIndex) })
+const maxFuel = computed(() => { void tick.value; return maxFuelSynth(props.areaIndex) })
+const maxPart = computed(() => { void tick.value; return maxPartSynth(props.areaIndex) })
 
 // Decimal 比较的 computed 布尔值（模板中无法直接使用 .lt/.gte 等方法）
 const canPrestige = computed(() => { void tick.value; return gameState.areas[props.areaIndex].level.gte(D(30)) })
@@ -233,7 +270,8 @@ const previewPrestige = computed(() => {
   const a = gameState.areas[props.areaIndex]
   if (a.level.lt(D(30))) return '需要30级'
   try {
-    return '获得' + fmt(calcPrestigeGain(props.areaIndex)) + '声望点'
+    const resName = AREA_RESOURCES_LIST[props.areaIndex][1].name
+    return '获得' + fmt(calcPrestigeGain(props.areaIndex)) + resName
   } catch (e) { return '' }
 })
 
@@ -242,7 +280,8 @@ const previewCrystal = computed(() => {
   const a = gameState.areas[props.areaIndex]
   if (a.level.lt(D(100))) return '需要100级'
   try {
-    return '获得' + fmt(calcCrystalGain(props.areaIndex)) + '水晶'
+    const resName = AREA_RESOURCES_LIST[props.areaIndex][2].name
+    return '获得' + fmt(calcCrystalGain(props.areaIndex)) + resName
   } catch (e) { return '' }
 })
 
@@ -261,7 +300,8 @@ const previewSteel = computed(() => {
   const a = gameState.areas[props.areaIndex]
   if (!a.unlockedFeatures.layer3B2 || a.level.lt(D(270))) return '需要270级'
   try {
-    return '获得' + fmt(calcSteelGain(props.areaIndex)) + '钢'
+    const resName = AREA_RESOURCES_LIST[props.areaIndex][3].name
+    return '获得' + fmt(calcSteelGain(props.areaIndex)) + resName
   } catch (e) { return '' }
 })
 
@@ -279,13 +319,20 @@ function handleLayer1Reset() { doLayer1Reset(props.areaIndex); tick.value++ }
 function handleLayer2Reset() { doLayer2Reset(props.areaIndex); tick.value++ }
 function handleLayer3B1Reset() { doLayer3Branch1Reset(props.areaIndex); tick.value++ }
 function handleLayer3B2Reset() { doLayer3Branch2Reset(props.areaIndex); tick.value++ }
+function handleSynthFuel() { if (maxFuel.value.gt(D0)) { synthesizeFuel(props.areaIndex, D1); tick.value++ } }
+function handleSynthFuelMax() { if (maxFuel.value.gt(D0)) { synthesizeFuel(props.areaIndex, maxFuel.value); tick.value++ } }
+function handleSynthPart() { if (maxPart.value.gt(D0)) { synthesizePart(props.areaIndex, D1); tick.value++ } }
+function handleSynthPartMax() { if (maxPart.value.gt(D0)) { synthesizePart(props.areaIndex, maxPart.value); tick.value++ } }
 
 // 升级分类
 const upgradeCategories = computed(() => {
   void tick.value
   const a = gameState.areas[props.areaIndex]
   const cats = {}
+  // A1区域只显示1xx升级，A2区域只显示2xx升级
+  const areaPrefix = props.areaIndex === 0 ? '1' : props.areaIndex === 1 ? '2' : String(props.areaIndex + 1)
   for (const id in a.upgrades) {
+    if (!id.startsWith(areaPrefix)) continue
     if (!isUpgradeUnlocked(props.areaIndex, id)) continue
     const def = a.upgrades[id]
     const cat = getUpgradeCategory(id)
@@ -333,6 +380,7 @@ function getEffectText(upg) {
         if (upg.description.includes('不再消耗')) return '免费'
         if (upg.description.includes('自动割1')) return '自动'
         if (upg.description.includes('自动割草')) return '自动割草'
+        if (upg.description.includes('自动割反草')) return '自动割反草'
         if (upg.description.includes('自动生成')) return '自动生成'
         if (upg.description.includes('不再重置')) return '不再重置'
         return upg.description.length > 14 ? upg.description.substring(0, 12) + '...' : upg.description
@@ -341,8 +389,10 @@ function getEffectText(upg) {
       if (upg.description.includes('解锁')) return `已解锁 Lv.${lv}`
       if (upg.description.includes('自动购买')) return `已激活`
       if (upg.description.includes('不再消耗')) return `已激活`
+      if (upg.description.includes('自动割1次反草')) return `间隔 ${(1/lv).toFixed(2)}s`
       if (upg.description.includes('自动割1')) return `间隔 ${Math.max(0, 5 - (lv - 1))}s`
       if (upg.description.includes('自动割草')) return `已激活 Lv.${lv}`
+      if (upg.description.includes('自动割反草')) return `×${1+lv} 自动割反草`
       if (upg.description.includes('自动生成')) return `已激活`
       if (upg.description.includes('不再重置')) return `已激活`
       return upg.description.length > 14 ? upg.description.substring(0, 12) + '...' : upg.description
@@ -366,11 +416,17 @@ function getEffectText(upg) {
     else if (boost === 'cut_amount') resName = '多割'
     else if (boost === 'A1_grass_cap') resName = '上限'
     else if (boost === 'A1_growth_speed') resName = '长速'
+    else if (boost === 'antiGrass') resName = '反草'
+    else if (boost === 'antiXp') resName = '反经验'
+    else if (boost === 'A2_grass_cap') resName = '上限'
+    else if (boost === 'A2_growth_speed') resName = '长速'
+    else if (boost === 'anonymousPoint') resName = '匿名点'
+    else if (boost === 'oil') resName = '石油'
+    else if (boost === 'cuprum') resName = '铜'
 
     if (lv === 0) return `${resName} ×?`
 
-    const result = totalMult.toFixed(2)
-    return isNaN(+result) || result === 'NaN' ? `${resName} ×?` : `${resName} ×${result}`
+    return `${resName} ×${fmt(D(totalMult))}`
   } catch (e) {
     return upg.description ? upg.description.slice(0, 12) + '...' : '?'
   }
@@ -485,13 +541,15 @@ function resEmoji(buyRes) {
   line-height: 1.2;
 }
 .xp-label { font-size: 20px; font-weight: bold; color: #58a6ff; }
-.dl-label { color: #a371f7; }
+.axp-label { font-size: 20px; font-weight: bold; color:  #000ed3; }
+.dl-label { color: #f7ee71; }
 .xp-val { color: #8b949e; font-size: 14px; }
 .xp-bonus { color: #d29922; font-size: 14px; }
 .xp-bottom { height: 10px; padding-bottom: 4px; }
 .xp-fill { width: 100%; height: 10px; background: #21262d; border-radius: 2px; }
 .xp-inner { height: 100%; background: linear-gradient(90deg, #58a6ff, #83d8ff); border-radius: 2px; transition: width 0.2s; }
-.dl-inner { background: linear-gradient(90deg, #a371f7, #d2a8ff); }
+.axp-inner { height: 100%; background: linear-gradient(90deg, #000ed3, #1423ff); border-radius: 2px; transition: width 0.2s; }
+.dl-inner { background: linear-gradient(90deg, #f5f771, #fff9a8); }
 .dl-xp-cell { border-color: #a371f744; }
 
 /* 重置按钮 */
@@ -560,6 +618,11 @@ function resEmoji(buyRes) {
 .charge-ms .ms-section { color: #a371f7; }
 .ms-item { color: #484f58; padding: 1px 0; }
 .ms-item.done { color: #7ee787; }
+.ms-bonus { color: #a371f7; font-size: 0.85em; margin-left: 4px; }
+.synth-btns { display: flex; gap: 4px; margin-top: 4px; }
+.synth-btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 0.8em; }
+.synth-btn:hover:not(:disabled) { background: #30363d; }
+.synth-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .charge-ms .ms-item.done { color: #a371f7; }
 .ms-locked {
   flex: 1;

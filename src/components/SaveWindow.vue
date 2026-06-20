@@ -4,12 +4,13 @@
       <h3>💾 存档管理</h3>
       <div class="save-actions">
         <button class="save-btn" @click="doSave">💾 手动保存</button>
-        <button class="save-btn" @click="doLoad">📂 加载存档</button>
         <button class="save-btn" @click="exportClip">📋 导出到剪贴板</button>
         <button class="save-btn" @click="importClip">📥 从剪贴板导入</button>
         <button class="save-btn" @click="exportFile">📄 导出到文件</button>
         <button class="save-btn" @click="importFile">📁 从文件导入</button>
         <button class="save-btn danger-btn" @click="doHardReset">⚠️ 硬重置</button>
+        不真实割草增量(NRGCI) 作者：dlsdl<br />
+        提示：按住shift一次购买10级升级
       </div>
       <div class="save-status" v-if="statusMsg">{{ statusMsg }}</div>
       <button class="modal-close-btn" @click="$emit('close')">关闭</button>
