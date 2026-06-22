@@ -4,6 +4,7 @@
     <div class="fixed-buttons">
       <div class="canvas-info">{{ canvasInfoText }}</div>
       <button v-if="isDev" class="fixed-btn debug-btn" @click="showDebug = true">🔧 调试</button>
+      <button class="fixed-btn" @click="showStats = true">📊 统计</button>
       <button class="fixed-btn" @click="showTeleport = true">🗺️ 传送</button>
       <button class="fixed-btn" @click="showSaveWindow = true">💾 存档</button>
     </div>
@@ -54,6 +55,9 @@
 
     <!-- 调试弹窗（仅开发环境） -->
     <DebugModal v-if="showDebug" @close="showDebug = false" />
+
+    <!-- 统计弹窗 -->
+    <StatsModal v-if="showStats" @close="showStats = false" />
   </div>
 </template>
 
@@ -66,11 +70,13 @@ import AdvancedGrid from './components/AdvancedGrid.vue'
 import TeleportModal from './components/TeleportModal.vue'
 import SaveWindow from './components/SaveWindow.vue'
 import DebugModal from './components/DebugModal.vue'
+import StatsModal from './components/StatsModal.vue'
 
 const canvasEl = ref(null)
 const AREA_SIZE = CELL * 20
 const isDev = import.meta.env.DEV
 const showDebug = ref(false)
+const showStats = ref(false)
 
 const canvasStyle = computed(() => {
   void viewTick.value

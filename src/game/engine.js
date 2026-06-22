@@ -596,6 +596,105 @@ export function calcTotalBoost(ai, resourceKey) {
   return total
 }
 
+// 获取对特定资源的所有升级加成分解（用于统计面板）
+// 返回 [{ source, multiplier }]，source为"XX升级"
+export function getUpgradeBoostBreakdown(ai, resourceKey) {
+  const area = gameState.areas[ai]
+  const result = []
+  for (const id in area.upgrades) {
+    const def = area.upgrades[id]
+    if (def.boostResource === resourceKey && D(def.level).gt(D0)) {
+      const cat = getUpgradeCategory(id)
+      result.push({ source: cat.name, multiplier: calcUpgradeMultiplier(ai, id) })
+    }
+  }
+  // 合并同source
+  const merged = {}
+  for (const r of result) {
+    if (merged[r.source]) merged[r.source] = merged[r.source].mul(r.multiplier)
+    else merged[r.source] = r.multiplier
+  }
+  return Object.entries(merged).map(([source, multiplier]) => ({ source, multiplier }))
+}
+
+// 获取某区域某资源的完整加成分解
+// 返回 { total, breakdown: [{ source, multiplier }] }
+export function getResourceBoostBreakdown(ai, resourceKey) {
+  const area = gameState.areas[ai]
+  const breakdown = []
+
+  // 升级加成
+  const upgBreakdown = getUpgradeBoostBreakdown(ai, resourceKey)
+  for (const b of upgBreakdown) breakdown.push(b)
+
+  // 二重等级加成（对草和经验）
+  if ((resourceKey === grassBoostKey(ai) || resourceKey === xpBoostKey(ai)) && area.doubleUnlocked && area.doubleLevel.gt(D0)) {
+    const dlMult = D(area.doubleLevel).add(1).mul(D(1.2).pow(area.doubleLevel))
+    breakdown.push({ source: '二重等级', multiplier: dlMult })
+  }
+
+  // A1等级加成（对草）
+  if (ai === 0 && resourceKey === 'grass' && area.level.gt(D0)) {
+    const lvMult = D(1).add(area.level).mul(D(1.1).pow(area.level))
+    breakdown.push({ source: '等级', multiplier: lvMult })
+  }
+
+  // A2反等级加成（对充能）
+  if (ai === 0 && resourceKey === 'charge' && gameState.areas[1].level.gt(D0)) {
+    const aLv = gameState.areas[1].level
+    breakdown.push({ source: '反等级', multiplier: D(1).add(aLv.div(2)).mul(D(1.05).pow(aLv)) })
+  }
+
+  // 草蹦里程碑加成
+  const hopEff = applyGrassHopEffects(ai)
+  const hopMap = { grass: hopEff.grass, xp: hopEff.xp, doubleXp: hopEff.doubleXp, cuprum: D1.add(hopEff.cuprumBase) }
+  const hopKey = resourceKey === grassBoostKey(ai) ? 'grass' : resourceKey === xpBoostKey(ai) ? 'xp' : resourceKey === 'doubleXp' ? 'doubleXp' : resourceKey === 'cuprum' ? 'cuprum' : null
+  if (hopKey && hopMap[hopKey] && !hopMap[hopKey].eq(D1)) {
+    breakdown.push({ source: '草蹦里程碑', multiplier: hopMap[hopKey] })
+  }
+
+  // 充能里程碑加成
+  const chEff = applyChargeEffects(ai)
+  const chMap = { steel: chEff.steel, xp: chEff.xp, doubleXp: chEff.doubleXp, grass: chEff.grass, prestige: chEff.prestige, crystal: chEff.crystal }
+  if (chMap[resourceKey] && !chMap[resourceKey].eq(D1)) {
+    breakdown.push({ source: '充能里程碑', multiplier: chMap[resourceKey] })
+  }
+
+  // A2升级对A1充能的加成
+  if (ai === 0 && resourceKey === 'charge') {
+    const a2ChargeBoost = calcTotalBoost(1, 'charge')
+    if (!a2ChargeBoost.eq(D1)) breakdown.push({ source: 'A2升级', multiplier: a2ChargeBoost })
+  }
+
+  // 计算总计
+  let total = D1
+  for (const b of breakdown) total = total.mul(b.multiplier)
+
+  return { total, breakdown }
+}
+
+// 获取某区域所有需要显示加成的资源列表
+export function getResourceBreakdownList(ai) {
+  const area = gameState.areas[ai]
+  const resources = AREA_RESOURCES_LIST[ai]
+  const result = []
+  // 草/反草
+  result.push({ key: grassBoostKey(ai), name: resources[0].name })
+  // 经验（特殊）
+  result.push({ key: xpBoostKey(ai), name: ai === 0 ? '经验' : '反经验' })
+  // 二重经验
+  if (area.doubleUnlocked) result.push({ key: 'doubleXp', name: '二重经验' })
+  // 声望/匿名点
+  result.push({ key: prestigeBoostKey(ai), name: resources[1].name })
+  // 水晶/石油
+  result.push({ key: crystalBoostKey(ai), name: resources[2].name })
+  // 钢/银
+  result.push({ key: ai === 0 ? 'steel' : resources[3].id, name: resources[3].name })
+  // 充能（仅A1）
+  if (ai === 0 && area.unlockedFeatures.generators) result.push({ key: 'charge', name: '充能' })
+  return result
+}
+
 // ============ 割草收益计算 ============
 // 获取区域对应的草和经验boostResource键
 function grassBoostKey(ai) { return ai === 0 ? 'grass' : ai === 1 ? 'antiGrass' : ai === 2 ? 'unnaturalGrass' : 'planetoidGrass' }
