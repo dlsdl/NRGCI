@@ -129,6 +129,13 @@
       </div>
     </div>
 
+    <!-- 星星重置 2x2 (购买148后解锁，仅A1，火箭燃料右侧) -->
+    <div class="cell reset-btn star-reset" v-if="starUnlocked" style="grid-row: 1 / 3; grid-column: 15 / 17;" @click="handleStarReset">
+      <div class="rb-name">✨ 星星重置</div>
+      <div class="rb-desc">重置A1全部和A2液化及以前</div>
+      <div class="rb-gain">获得 {{ fmt(starGain) }} ✨</div>
+    </div>
+
     <!-- 火箭部件 3x3 (购买147后解锁，仅A1) -->
     <div class="cell milestones part-panel" v-if="areaIndex===0 && partUnlocked" style="grid-row: 4 / 7; grid-column: 12 / 15;">
       <div class="ms-header">🔧 火箭部件</div>
@@ -184,6 +191,7 @@ import {
   isCuprumUnlocked, cuprumMultiplier,
   getChargeMilestoneEffect, calcChargePerSec,
   isFuelUnlocked, isPartUnlocked, synthesizeFuel, synthesizePart, maxFuelSynth, maxPartSynth,
+  isStarResetUnlocked, calcStarGain, doStarReset,
 } from '../game/engine.js'
 
 const props = defineProps({ areaIndex: { type: Number, required: true } })
@@ -216,6 +224,8 @@ const fuelUnlocked = computed(() => { void tick.value; return isFuelUnlocked(pro
 const partUnlocked = computed(() => { void tick.value; return isPartUnlocked(props.areaIndex) })
 const maxFuel = computed(() => { void tick.value; return maxFuelSynth(props.areaIndex) })
 const maxPart = computed(() => { void tick.value; return maxPartSynth(props.areaIndex) })
+const starUnlocked = computed(() => { void tick.value; return props.areaIndex === 0 && isStarResetUnlocked() })
+const starGain = computed(() => { void tick.value; return calcStarGain() })
 
 // Decimal 比较的 computed 布尔值（模板中无法直接使用 .lt/.gte 等方法）
 const canPrestige = computed(() => { void tick.value; return gameState.areas[props.areaIndex].level.gte(D(30)) })
@@ -323,6 +333,7 @@ function handleSynthFuel() { if (maxFuel.value.gt(D0)) { synthesizeFuel(props.ar
 function handleSynthFuelMax() { if (maxFuel.value.gt(D0)) { synthesizeFuel(props.areaIndex, maxFuel.value); tick.value++ } }
 function handleSynthPart() { if (maxPart.value.gt(D0)) { synthesizePart(props.areaIndex, D1); tick.value++ } }
 function handleSynthPartMax() { if (maxPart.value.gt(D0)) { synthesizePart(props.areaIndex, maxPart.value); tick.value++ } }
+function handleStarReset() { doStarReset(); tick.value++ }
 
 // 升级分类
 const upgradeCategories = computed(() => {

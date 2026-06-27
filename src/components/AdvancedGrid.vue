@@ -7,6 +7,18 @@
       <span class="adv-count">重置 ×{{ advArea.resetCounts }}</span>
     </div>
 
+    <!-- B1区域升级 -->
+    <div v-if="areaIndex === 0" class="b1-upgrades">
+      <div v-for="upg in b1UpgradeList" :key="upg.id" class="b1-upgrade-tile"
+        :class="{ affordable: canAffordB1Upgrade(upg.id), capped: D(upg.level).gte(upg.cap === undefined || upg.cap === null ? Infinity : upg.cap) }"
+        @click="buyB1Upgrade(upg.id); tick.value++">
+        <div class="b1-upg-id">{{ upg.id }}</div>
+        <div class="b1-upg-desc">{{ upg.description.substring(0, 16) }}{{ upg.description.length > 16 ? '...' : '' }}</div>
+        <div class="b1-upg-cost">✨{{ fmt(calcUpgradeCost(upg)) }}</div>
+        <div class="b1-upg-level">Lv.{{ fmt(upg.level) }}</div>
+      </div>
+    </div>
+
     <div class="adv-reset-info">
       <p>重置 {{ affectedAreas }} 的全部内容</p>
     </div>
@@ -19,11 +31,19 @@
 
 <script setup>
 import { computed } from 'vue'
-import { gameState, tick, fmt, ADVANCED_AREAS, doAdvancedReset } from '../game/engine.js'
+import { gameState, tick, fmt, D, ADVANCED_AREAS, doAdvancedReset, buyB1Upgrade, canAffordB1Upgrade, calcUpgradeCost } from '../game/engine.js'
 
 const props = defineProps({ areaIndex: { type: Number, required: true } })
 const advArea = computed(() => { void tick.value; return gameState.advancedAreas[props.areaIndex] })
 const advInfo = computed(() => ADVANCED_AREAS[props.areaIndex])
+
+const b1UpgradeList = computed(() => {
+  void tick.value
+  if (props.areaIndex !== 0) return []
+  const b1 = gameState.advancedAreas[0]
+  if (!b1.unlocked) return []
+  return Object.values(b1.upgrades)
+})
 
 const affectedAreas = computed(() => {
   if (props.areaIndex === 3) return 'A1-A4'
@@ -35,42 +55,41 @@ function doAdvReset() { doAdvancedReset(props.areaIndex) }
 
 <style scoped>
 .adv-grid {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 24px;
-  min-height: 200px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; padding: 24px; min-height: 200px;
 }
 .adv-resource-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  background: #1a1424;
-  border: 2px solid #a371f744;
-  border-radius: 12px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 24px; background: #1a1424;
+  border: 2px solid #a371f744; border-radius: 12px;
 }
 .adv-emoji { font-size: 36px; }
 .adv-name { font-size: 20px; color: #a371f7; font-weight: bold; }
 .adv-value { font-size: 22px; color: #c9d1d9; }
 .adv-count { font-size: 14px; color: #8b949e; }
 
-.adv-reset-info {
-  font-size: 13px;
-  color: #f0883e;
+.b1-upgrades {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  max-width: 800px;
 }
+.b1-upgrade-tile {
+  width: 130px; padding: 8px; background: #161b22;
+  border: 1px solid #30363d; border-radius: 6px; cursor: pointer;
+  transition: all 0.15s; text-align: center;
+}
+.b1-upgrade-tile.affordable { border-color: #3fb950; }
+.b1-upgrade-tile.affordable:hover { background: #1c2a1c; }
+.b1-upgrade-tile.capped { opacity: 0.5; cursor: not-allowed; }
+.b1-upg-id { color: #58a6ff; font-weight: bold; font-size: 13px; }
+.b1-upg-desc { color: #8b949e; font-size: 11px; margin: 2px 0; }
+.b1-upg-cost { color: #f0883e; font-size: 12px; }
+.b1-upg-level { color: #a371f7; font-size: 11px; }
 
+.adv-reset-info { font-size: 13px; color: #f0883e; }
 .adv-reset-btn {
-  padding: 12px 32px;
-  border: 2px solid #a371f7;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #2a1a4a, #1a0a2a);
-  color: #a371f7;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 12px 32px; border: 2px solid #a371f7; border-radius: 10px;
+  background: linear-gradient(180deg, #2a1a4a, #1a0a2a); color: #a371f7;
+  font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s;
 }
 .adv-reset-btn:hover { background: linear-gradient(180deg, #3a2a5a, #2a1a3a); }
 </style>

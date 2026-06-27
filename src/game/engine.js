@@ -207,6 +207,20 @@ const UPGRADES_CSV = `111,"grass",10,1.32,"grass",1,2,"Infinity","每级使草�
 2A4,"oil",100,1,"",1,1,1,"自动购买匿名点升级"
 `
 
+// B1区域升级（星星购买）
+const B1_UPGRADES_CSV = `id,buyResource,baseCost,costScaling,boostResource,addition,multPer10,cap,description
+B11,"star",1,1.5,"grass",0.5,1.2,"Infinity","每级使草的获得数量+50%，每10级使草的获得数量×1.2"
+B12,"star",1,1.5,"xp",0.5,1.2,"Infinity","每级使经验的获得数量+50%，每10级使经验的获得数量×1.2"
+B13,"star",2,1.5,"prestige",0.5,1.2,"Infinity","每级使声望点的获得数量+50%，每10级使声望点的获得数量×1.2"
+B14,"star",2,1.5,"crystal",0.5,1.2,"Infinity","每级使水晶的获得数量+50%，每10级使水晶的获得数量×1.2"
+B15,"star",5,1.5,"steel",0.5,1.2,"Infinity","每级使钢的获得数量+50%，每10级使钢的获得数量×1.2"
+B16,"star",5,1.5,"charge",0.5,1.2,"Infinity","每级使充能的获得数量+50%，每10级使充能的获得数量×1.2"
+B17,"star",10,1.5,"antiGrass",0.5,1.2,"Infinity","每级使反草的获得数量+50%，每10级使反草的获得数量×1.2"
+B18,"star",10,1.5,"oil",0.5,1.2,"Infinity","每级使石油的获得数量+50%，每10级使石油的获得数量×1.2"
+B19,"star",50,2,"fuel",0.25,1.15,"Infinity","每级使火箭燃料的效果+25%，每10级使火箭燃料的效果×1.15"
+BA1,"star",100,2,"",1,1,1,"自动购买星星升级"
+`
+
 function parseCSV(csv) {
   const lines = csv.trim().split('\n')
   const upgrades = {}
@@ -343,7 +357,7 @@ grass_hop,6,"层点的基础获取数量+1"
 grass_hop,7,"铜的基础获取数量第三次+1"
 grass_hop,8,"永久解锁钢化重置"
 grass_hop,10,"钢的获取数量×(1+0.25×草蹦次数)"
-grass_hop,12,"第12~31次的每次草蹦使充能获取数量翻倍"
+grass_hop,12,"使充能获取数量乘以2^(草蹦次数-10)"
 grass_hop,14,"这次及以后的每次草蹦使充能奖励公式中的除数÷10(除数最低为1)"
 grass_hop,16,"反草的获取数量×(1+0.5×草蹦次数)"
 grass_hop,18,"反经验的获取数量×(1.2^草蹦次数)"
@@ -404,8 +418,8 @@ function applyGrassHopEffects(areaIndex) {
     if (m.times === 6) eff.perkBase = eff.perkBase.add(D1) // 级点基础+1
     if (m.times === 10) eff.steel = eff.steel.mul(D(1).add(D(0.25).mul(count))) // ×(1+0.25×草蹦次数)
     if (m.times === 12) {
-      // 第12~31次的每次草蹦使充能获取数量翻倍
-      const bonusHops = Math.max(0, Math.min(countN, 31) - 11)
+      // 使充能获取数量乘以2^(草蹦次数-10)
+      const bonusHops = Math.max(0, countN - 10)
       eff.charge = eff.charge.mul(D(2).pow(bonusHops))
     }
     if (m.times === 14) {
@@ -472,6 +486,9 @@ export function calcChargePerSec(ai) {
   cg = cg.mul(D(1).add(D(getUpgradeLevel(ai, '144')).mul(0.1)))
   cg = cg.mul(D(2).pow(Math.floor(getUpgradeLevel(ai, '192') / 10)))
   cg = cg.mul(D(2).pow(Math.floor(getUpgradeLevel(ai, '193') / 10)))
+  // 草蹦里程碑对充能的加成
+  const hopEff = applyGrassHopEffects(ai)
+  cg = cg.mul(hopEff.charge)
   // A2反等级加成充能
   if (ai === 0 && gameState.areas[1].level.gt(D0)) {
     const aLv = gameState.areas[1].level
@@ -517,6 +534,7 @@ function createAdvState(i) {
     xp: D(0),
     resetCounts: 0,
     resourceId: ADVANCED_AREAS[i].id,
+    upgrades: i === 0 ? parseCSV(B1_UPGRADES_CSV) : {},
   }
 }
 
@@ -593,7 +611,26 @@ export function calcTotalBoost(ai, resourceKey) {
       total = total.mul(calcUpgradeMultiplier(ai, id))
     }
   }
+  // B1升级加成（对所有区域生效）
+  const b1 = gameState.advancedAreas[0]
+  if (b1.unlocked) {
+    for (const id in b1.upgrades) {
+      const def = b1.upgrades[id]
+      if (def.boostResource === resourceKey && D(def.level).gt(D0)) {
+        total = total.mul(calcB1UpgradeMultiplier(id))
+      }
+    }
+  }
   return total
+}
+
+// 计算B1单个升级的加成倍数
+function calcB1UpgradeMultiplier(id) {
+  const def = gameState.advancedAreas[0].upgrades[id]
+  if (!def || D(def.level).lte(D0) || !def.boostResource) return D1
+  const add = D(1).add(D(def.level).mul(def.addition))
+  const mult = D(def.multPer10).pow(D(def.level).div(D(10)).floor())
+  return add.mul(mult)
 }
 
 // 获取对特定资源的所有升级加成分解（用于统计面板）
@@ -704,8 +741,8 @@ function calcCutGains(areaIndex, cutAmount) {
   const area = gameState.areas[areaIndex]
   // 草收益 - 使用通用升级效果计算
   let gain = calcTotalBoost(areaIndex, grassBoostKey(areaIndex))
-  // 二重等级加成: (doubleLevel+1)×1.2^doubleLevel
-  if (area.doubleUnlocked && area.doubleLevel.gt(D0)) gain = gain.mul(D(area.doubleLevel).add(1).mul(D(1.2).pow(area.doubleLevel)))
+  // 二重等级加成: (doubleLevel+1)×1.2^doubleLevel (A2无二重等级)
+  if (area.doubleUnlocked && area.doubleLevel.gt(D0) && areaIndex !== 1) gain = gain.mul(D(area.doubleLevel).add(1).mul(D(1.2).pow(area.doubleLevel)))
   // 其他特殊加成
   if (areaIndex === 0 && gameState.areas[0].level.gt(D0)) gain = gain.mul(D(1).add(D(gameState.areas[0].level)).mul(D(1.1).pow(D(gameState.areas[0].level))))
   if (gameState.areas[2].level.gt(D0)) gain = gain.mul(D(1).add(D(gameState.areas[2].level).mul(0.05)))
@@ -714,19 +751,21 @@ function calcCutGains(areaIndex, cutAmount) {
   gain = gain.mul(hopEff.grass)
   const chEff = applyChargeEffects(areaIndex)
   gain = gain.mul(chEff.grass)
+  // 火箭燃料/部件加成
+  gain = gain.mul(fuelPartBoost(areaIndex).grass)
   if (area.milestones.layer3B1.gte(D(12))) {
     gain = gain.mul(D(2).pow(Decimal.min(area.milestones.layer3B1.sub(11), Math.log2(1e6))))
   }
   
   // 经验 - 使用通用升级效果计算
   let xpGain = calcTotalBoost(areaIndex, xpBoostKey(areaIndex))
-  // 二重等级加成: (doubleLevel+1)×1.2^doubleLevel
-  if (area.doubleUnlocked && area.doubleLevel.gt(D0)) xpGain = xpGain.mul(D(area.doubleLevel).add(1).mul(D(1.2).pow(area.doubleLevel)))
+  // 二重等级加成 (A2无二重等级)
+  if (area.doubleUnlocked && area.doubleLevel.gt(D0) && areaIndex !== 1) xpGain = xpGain.mul(D(area.doubleLevel).add(1).mul(D(1.2).pow(area.doubleLevel)))
   xpGain = xpGain.mul(hopEff.xp).mul(chEff.xp).mul(cutAmount).mul(gameState.gameSpeed)
   
-  // 二重经验 - 使用通用升级效果计算
+  // 二重经验 - A2无二重等级
   let dXp = null
-  if (area.doubleUnlocked) {
+  if (area.doubleUnlocked && areaIndex !== 1) {
     dXp = calcTotalBoost(areaIndex, 'doubleXp')
     dXp = dXp.mul(hopEff.doubleXp).mul(chEff.doubleXp).mul(cutAmount).mul(gameState.gameSpeed)
   }
@@ -745,6 +784,24 @@ export function cuprumMultiplier(ai) {
 // ============ 火箭燃料 & 火箭部件 ============
 export function isFuelUnlocked(ai) { return getUpgradeLevel(ai, '146') >= 1 }
 export function isPartUnlocked(ai) { return getUpgradeLevel(ai, '147') >= 1 }
+
+// 火箭燃料/部件对草/声望/水晶/钢的加成: (x+1)^0.25 × B19加成
+export function fuelPartBoost(ai) {
+  if (ai !== 0) return { grass: D1, prestige: D1, crystal: D1, steel: D1 }
+  let fuel = ensureDec(gameState.areas[0].resources['fuel']).add(D1).pow(D(0.25))
+  let part = ensureDec(gameState.areas[0].resources['part']).add(D1).pow(D(0.25))
+  // B19升级对火箭燃料效果的加成
+  const b1 = gameState.advancedAreas[0]
+  if (b1.unlocked) {
+    const b19lv = D(b1.upgrades['B19']?.level || 0)
+    if (b19lv.gt(D0)) {
+      const b19boost = D(1).add(b19lv.mul(0.25)).mul(D(1.15).pow(b19lv.div(10).floor()))
+      fuel = fuel.pow(b19boost)
+      part = part.pow(b19boost)
+    }
+  }
+  return { grass: fuel.mul(part), prestige: fuel.mul(part), crystal: fuel.mul(part), steel: fuel.mul(part) }
+}
 
 // 合成火箭燃料：消耗充能和石油
 export function synthesizeFuel(ai, amount) {
@@ -868,7 +925,7 @@ function checkLevelUp(areaIndex) {
 
 function checkDoubleLevelUp(areaIndex) {
   const area = gameState.areas[areaIndex]
-  if (!area.doubleUnlocked) return
+  if (!area.doubleUnlocked || areaIndex === 1) return // A2无二重等级
   while (true) {
     const cost = doubleXpCost(area.doubleLevel)
     if (ensureDec(area.doubleXp).gte(cost)) {
@@ -924,6 +981,7 @@ export function calcPrestigeGain(ai) {
   const grass = ensureDec(area.resources[gk])
   let gain = Decimal.pow(2, area.level-30).mul(grass).pow(0.05).mul(9)
   gain = gain.mul(calcTotalBoost(ai, prestigeBoostKey(ai)))
+  gain = gain.mul(fuelPartBoost(ai).prestige)
   return gain.floor().max(D1)
 }
 
@@ -933,6 +991,7 @@ export function calcCrystalGain(ai) {
   const grass = ensureDec(area.resources[gk])
   let gain = Decimal.pow(2, area.level-100).mul(grass).pow(0.03).mul(3)
   gain = gain.mul(calcTotalBoost(ai, crystalBoostKey(ai)))
+  gain = gain.mul(fuelPartBoost(ai).crystal)
   return gain.floor().max(D1)
 }
 
@@ -949,7 +1008,51 @@ export function calcSteelGain(ai) {
     if (lv > 0) gain = gain.mul(D(1).add(D(0.1).mul(boost141).mul(lv)))
   }
   gain = gain.mul(calcTotalBoost(ai, 'steel'))
+  gain = gain.mul(fuelPartBoost(ai).steel)
   return gain.floor().max(D1)
+}
+
+// ============ 星星重置 ============
+export function isStarResetUnlocked() { return getUpgradeLevel(0, '148') >= 1 }
+
+export function calcStarGain() {
+  if (!isStarResetUnlocked()) return D0
+  const a1 = gameState.areas[0]
+  const a2 = gameState.areas[1]
+  const steel = ensureDec(a1.resources['steel'])
+  const oil = ensureDec(a2.resources['oil'])
+  // 星星 = sqrt(钢) × sqrt(石油/1e3) + 1
+  let gain = D(1)
+  if (steel.gt(D0)) gain = gain.add(steel.pow(0.5))
+  if (oil.gt(D(1e3))) gain = gain.add(oil.div(1e3).pow(0.5))
+  return gain.floor().max(D1)
+}
+
+export function doStarReset() {
+  if (!isStarResetUnlocked()) return
+  const gain = calcStarGain()
+  if (gain.lte(D0)) return
+  // 增加星星
+  gameState.advancedAreas[0].resource = ensureDec(gameState.advancedAreas[0].resource).add(gain)
+  gameState.advancedAreas[0].resetCounts++
+  // 重置A1全部内容
+  fullResetArea(0)
+  // 重置A2液化及以前的内容（重置A2的等级/经验/升级，保留layer2+的资源）
+  const a2 = gameState.areas[1]
+  a2.level = D(0); a2.xp = D(0)
+  a2.doubleLevel = D(0); a2.doubleXp = D(0)
+  a2.grassField.grass = D(0); a2.grassField.cuprum = D(0); a2.grassField._frac = D(0)
+  // 重置A2的21x升级
+  for (const id in a2.upgrades) {
+    if (id.startsWith('21')) a2.upgrades[id].level = D(0)
+  }
+  // A2的layer1和layer2重置计数保留，但声望/水晶类资源重置
+  a2.resources[grassKey(1)] = D(0)
+  a2.resources[prestKey(1)] = D(0)
+  a2.resources[crystKey(1)] = D(0)
+  // 解锁B1
+  gameState.advancedAreas[0].unlocked = true
+  addNotification('✨ 星星重置完成！获得' + fmt(gain) + '星星')
 }
 
 // ============ 声望重置 ============
@@ -1050,6 +1153,31 @@ export function doAdvancedReset(advIdx) {
   adv.resetCounts++
   for (let i = 0; i <= maxArea; i++) fullResetArea(i)
   addNotification(`B${advIdx + 1}: ${ADVANCED_AREAS[advIdx].name}重置完成`)
+}
+
+// ============ B1升级购买 ============
+export function buyB1Upgrade(upgradeId) {
+  const b1 = gameState.advancedAreas[0]
+  if (!b1.unlocked) return
+  const def = b1.upgrades[upgradeId]
+  if (!def) return
+  const cap = (def.cap === null || def.cap === undefined) ? Infinity : def.cap
+  if (D(def.level).gte(cap)) return
+  const cost = calcUpgradeCost(def)
+  if (ensureDec(b1.resource).gte(cost)) {
+    b1.resource = ensureDec(b1.resource).sub(cost)
+    def.level = D(def.level).add(D1)
+  }
+}
+
+export function canAffordB1Upgrade(id) {
+  const b1 = gameState.advancedAreas[0]
+  if (!b1.unlocked) return false
+  const def = b1.upgrades[id]
+  if (!def) return false
+  const cap = (def.cap === null || def.cap === undefined) ? Infinity : def.cap
+  if (D(def.level).gte(cap)) return false
+  return ensureDec(b1.resource).gte(calcUpgradeCost(def))
 }
 
 // ============ 升级购买 ============
@@ -1173,6 +1301,9 @@ export function gameTick() {
       cg = cg.mul(D(1).add(D(getUpgradeLevel(ai, '144')).mul(0.1)))
       cg = cg.mul(D(2).pow(Math.floor(getUpgradeLevel(ai, '192') / 10)))
       cg = cg.mul(D(2).pow(Math.floor(getUpgradeLevel(ai, '193') / 10)))
+      // 草蹦里程碑对充能的加成
+      const hopEff = applyGrassHopEffects(ai)
+      cg = cg.mul(hopEff.charge)
       // A2反等级加成充能: ×(1+反等级/2)×1.05^反等级
       if (ai === 0 && gameState.areas[1].level.gt(D0)) {
         const aLv = gameState.areas[1].level
