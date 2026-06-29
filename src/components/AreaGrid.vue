@@ -3,11 +3,13 @@
     <!-- 草地 4x4 -->
     <div class="cell grass-field" style="grid-row: 1 / 5; grid-column: 1 / 5;" @click="handleCutGrass">
       <div class="grass-emoji-row">
-        <span v-for="i in cuprumDisplay" :key="'c'+i">🟠</span><br />
+        <span v-for="i in argentumDisplay" :key="'a'+i">⚪</span><br v-if="argentumCount > 0" />
+        <span v-for="i in cuprumDisplay" :key="'c'+i">🟠</span><br v-if="cuprumCount > 0" />
         <span v-for="i in grassDisplay" :key="'g'+i">{{ resDefs[0].emoji }}</span>
-        <span v-if="grassCount === 0 && cuprumCount === 0" class="grass-empty">等待生长...</span>
+        <span v-if="grassCount === 0 && cuprumCount === 0 && argentumCount === 0" class="grass-empty">等待生长...</span>
       </div>
       <div class="grass-count">
+        <span v-if="argentumCount > 0">⚪{{ argentumCount }} </span>
         <span v-if="cuprumCount > 0">🟠{{ cuprumCount }} </span>
         {{ resDefs[0].emoji }}{{ grassCount }} / {{ fmt(a.grassField.maxGrass) }}
       </div>
@@ -78,31 +80,31 @@
       <div class="rb-gain" v-if="canSteel">{{ previewSteel }}</div>
     </div>
 
-    <!-- 资源显示 1x4 -->
+    <!-- 资源显示 2x4 -->
     <div class="cell resources-display" style="grid-row: 5 / 7; grid-column: 1 / 5;">
       <div v-for="(r, ri) in resDefs" :key="ri" class="res-chip">
         {{ r.emoji }}{{ r.name }}{{ fmt(a.resources[r.id]) }}
       </div>
     </div>
 
-    <!-- 草蹦里程碑 3x3 -->
+    <!-- 草蹦/草跳里程碑 3x3 -->
     <div class="cell milestones" style="grid-row: 1 / 4; grid-column: 9 / 12;">
-      <div class="ms-header">草蹦里程碑</div>
+      <div class="ms-header">{{ areaIndex === 1 ? '草跳里程碑' : '草蹦里程碑' }}</div>
       <div class="ms-scroll">
-        <div class="ms-section">已进行 {{ fmt(a.milestones.layer3B1) }} 次</div>
-        <div v-for="m in allGrassHopMile" :key="'gh'+m.times" class="ms-item" :class="{ done: a.milestones.layer3B1.gte(D(m.times)) }">
-          <span v-if="a.milestones.layer3B1.gte(D(m.times))">✓</span><span v-else>○</span>
+        <div class="ms-section">已进行 {{ fmt(areaIndex === 1 ? a.milestones.grassSkip : a.milestones.layer3B1) }} 次</div>
+        <div v-for="m in allGrassHopMile" :key="'gh'+m.times" class="ms-item" :class="{ done: hopMileMet(m) }">
+          <span v-if="hopMileMet(m)">✓</span><span v-else>○</span>
           {{ m.times }}次: {{ m.desc.substring(0, 28) }}{{ m.desc.length > 28 ? '...' : '' }}
         </div>
       </div>
     </div>
 
-    <!-- 充能里程碑 3x3 (购买143后解锁) -->
+    <!-- 充能/SFRGT里程碑 3x3 -->
     <div class="cell milestones charge-ms" v-if="isChargeUnlocked" style="grid-row: 4 / 7; grid-column: 9 / 12;">
-      <div class="ms-header">充能里程碑</div>
+      <div class="ms-header">{{ areaIndex === 1 ? 'SFRGT里程碑' : '充能里程碑' }}</div>
       <div class="ms-scroll">
         <div class="ms-section">当前: {{ fmt(a.resources[chargeKey]) }} | +{{ fmt(chargePerSec) }}/秒</div>
-        <div v-for="m in allChargeMile" :key="'ch'+m.charge" class="ms-item" :class="{ done: chargeMet(m) }">
+        <div v-for="m in visibleChargeMile" :key="'ch'+m.charge" class="ms-item" :class="{ done: chargeMet(m) }">
           <span v-if="chargeMet(m)">✓</span><span v-else>○</span>
           {{ fmtNum(m.charge) }}: {{ m.desc.substring(0, 22) }}{{ m.desc.length > 22 ? '...' : '' }}
           <span v-if="chargeMet(m)" class="ms-bonus">×{{ fmt(getChargeMilestoneEffect(props.areaIndex, m).multiplier) }}</span>
@@ -110,9 +112,9 @@
       </div>
     </div>
 
-    <!-- 充能未解锁占位 -->
+    <!-- 里程碑未解锁占位 -->
     <div class="cell milestones locked-ms" v-else style="grid-row: 4 / 7; grid-column: 9 / 12;">
-      <div class="ms-header">充能里程碑</div>
+      <div class="ms-header">{{ areaIndex === 1 ? 'SFRGT里程碑' : '充能里程碑' }}</div>
       <div class="ms-locked">🔒 购买升级后解锁</div>
     </div>
 
@@ -188,7 +190,7 @@ import {
   getLayer3B1RequiredLevel, doubleXpCost, xpEffect, doubleXpEffect,
   calcPrestigeGain, calcCrystalGain, calcSteelGain,
   milestoneDefs, isChargeMilestonesUnlocked, isUpgradeUnlocked,
-  isCuprumUnlocked, cuprumMultiplier,
+  isCuprumUnlocked, cuprumMultiplier, isArgentumUnlocked, argentumMultiplier,
   getChargeMilestoneEffect, calcChargePerSec,
   isFuelUnlocked, isPartUnlocked, synthesizeFuel, synthesizePart, maxFuelSynth, maxPartSynth,
   isStarResetUnlocked, calcStarGain, doStarReset,
@@ -217,6 +219,8 @@ const grassDisplay = computed(() => { void tick.value; return Math.min(gameState
 const grassPct = computed(() => { void tick.value; const a = gameState.areas[props.areaIndex]; return a.grassField.maxGrass.gt(D0) ? a.grassField.grass.div(a.grassField.maxGrass).mul(100).toNumber() : 0 })
 const cuprumCount = computed(() => { void tick.value; return isCuprumUnlocked(props.areaIndex) ? gameState.areas[props.areaIndex].grassField.cuprum.floor().toNumber() : 0 })
 const cuprumDisplay = computed(() => { void tick.value; return Math.min(cuprumCount.value, 20) })
+const argentumCount = computed(() => { void tick.value; return isArgentumUnlocked(props.areaIndex) ? (gameState.areas[props.areaIndex].grassField.argentum || D0).floor().toNumber() : 0 })
+const argentumDisplay = computed(() => { void tick.value; return Math.min(argentumCount.value, 20) })
 const reqL3B1 = computed(() => getLayer3B1RequiredLevel(props.areaIndex))
 const isChargeUnlocked = computed(() => { void tick.value; return isChargeMilestonesUnlocked(props.areaIndex) })
 const chargePerSec = computed(() => { void tick.value; return calcChargePerSec(props.areaIndex) })
@@ -256,8 +260,27 @@ const dlXpPct = computed(() => {
 })
 
 // 里程碑
-const allGrassHopMile = computed(() => milestoneDefs.grassHop)
+const allGrassHopMile = computed(() => {
+  void tick.value
+  return props.areaIndex === 1 ? milestoneDefs.grassSkip : milestoneDefs.grassHop
+})
 const allChargeMile = computed(() => milestoneDefs.charge)
+
+const visibleChargeMile = computed(() => {
+  void tick.value
+  const hidePost242 = getUpgradeLevel(props.areaIndex, '242') < 1
+  return milestoneDefs.charge.filter(m => {
+    if (hidePost242 && D(m.charge).gte(D(1e27))) return false
+    return true
+  })
+})
+
+function hopMileMet(m) {
+  void tick.value
+  const a = gameState.areas[props.areaIndex]
+  const count = props.areaIndex === 1 ? a.milestones.grassSkip : a.milestones.layer3B1
+  return ensureDec(count).gte(D(m.times))
+}
 
 function chargeMet(m) {
   try {
@@ -268,9 +291,7 @@ function chargeMet(m) {
 
 function fmtNum(n) {
   void tick.value
-  if (n >= 1e15) return n.toExponential(2)
-  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'
+  if (n >= 1e3) return n.toExponential(2)
   return String(n)
 }
 
@@ -415,7 +436,7 @@ function getEffectText(upg) {
     const per10Mult = Math.pow(multPer10, Math.floor(lv / 10))
     const totalMult = addMult * per10Mult
 
-    // 获取资源名称显示
+    // 获得资源名称显示
     let resName = boost
     if (boost === 'grass') resName = '草'
     else if (boost === 'xp') resName = '经验'

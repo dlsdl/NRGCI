@@ -259,9 +259,8 @@ body {
 }
 
 .area-block {
-  position: absolute; width: 2000px;
-  border-radius: 8px; padding: 4px;
+  position: absolute;
   pointer-events: auto; cursor: default;
 }
-.adv-area { border: 2px solid #58a6ff; }
+
 </style>

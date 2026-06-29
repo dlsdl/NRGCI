@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { gameState, AREA_FULL_NAMES, ADVANCED_AREAS, getAreaPos, getAdvancedAreaPos, CELL, showTeleport } from '../game/engine.js'
+import { gameState, AREA_FULL_NAMES, ADVANCED_AREAS, getAreaPos, getAdvancedAreaPos, CELL, showTeleport, viewTick } from '../game/engine.js'
 
 defineEmits(['close'])
 
@@ -41,6 +41,7 @@ function teleportTo(idx, isAdvanced) {
   gameState.viewX = -pos.x + window.innerWidth / 2 - AREA_SIZE / 2
   gameState.viewY = -pos.y + window.innerHeight / 2 - 200
   gameState.viewScale = 1
+  viewTick.value++
   showTeleport.value = false
 }
 </script>
